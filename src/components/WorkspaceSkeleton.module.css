@@ -1,0 +1,46 @@
+.shell {
+  max-width: 1200px;
+  margin: auto;
+  padding: 60px 30px;
+  color: #9aaebf;
+  font-size: 13px;
+}
+.title,
+.cards i,
+.panel {
+  background: #151e28;
+  border: 1px solid #263542;
+  border-radius: 8px;
+}
+.title {
+  height: 38px;
+  width: 60%;
+  margin: 35px 0;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.cards i {
+  display: block;
+  height: 95px;
+}
+.panel {
+  height: 290px;
+  margin-top: 25px;
+}
+@media (max-width: 640px) {
+  .shell {
+    padding: 35px 20px;
+  }
+  .cards {
+    grid-template-columns: 1fr;
+  }
+  .cards i {
+    height: 65px;
+  }
+  .title {
+    width: 85%;
+  }
+}

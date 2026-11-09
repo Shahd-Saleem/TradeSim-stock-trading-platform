@@ -1,6 +1,8 @@
 "use client";
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { workspaceRoutes, type WorkspaceView } from "@/lib/navigation";
 import {
   LayoutDashboard,
   ChartCandlestick,
@@ -10,8 +12,10 @@ import {
 import { AccountOverview } from "./AccountOverview";
 import { OrderPreview } from "./OrderPreview";
 import { stocks, type Stock } from "@/lib/market";
-import { aed, changePercent, STARTING_CAPITAL } from "@/lib/money";
+import { aed, changePercent } from "@/lib/money";
 import { PriceChart } from "./PriceChart";
+import type { AccountData } from "@/lib/account-types";
+import { Profile } from "./Profile";
 import s from "./Dashboard.module.css";
 const periods = [
   { label: "1M", days: 30 },
@@ -27,11 +31,32 @@ function Change({ stock }: { stock: Stock }) {
     </span>
   );
 }
-export function Dashboard() {
-  const [view, setView] = useState("Overview");
+export function Dashboard({
+  account = null,
+  initialView = "Overview",
+  initialSymbol,
+  initialExchange,
+}: {
+  account?: AccountData | null;
+  initialView?: WorkspaceView;
+  initialSymbol?: string;
+  initialExchange?: string;
+}) {
+  const router = useRouter();
+  const balance = account?.cashBalanceFils ?? 0;
+  const portfolioValue = account?.portfolioValueFils ?? 0;
+  const profitLoss = account?.profitLossFils ?? 0;
+  const view = account ? initialView : "Markets";
+  const setView = (name: WorkspaceView) => router.push(workspaceRoutes[name]);
   const [query, setQuery] = useState("");
   const [exchange, setExchange] = useState("All markets");
-  const [selected, setSelected] = useState(stocks[0]);
+  const [selected, setSelected] = useState(
+    stocks.find(
+      (stock) =>
+        stock.symbol === initialSymbol &&
+        (!initialExchange || stock.exchange === initialExchange),
+    ) ?? stocks[0],
+  );
   const [days, setDays] = useState(90);
   const filtered = useMemo(
     () =>
@@ -46,6 +71,9 @@ export function Dashboard() {
   );
   return (
     <div className={s.shell}>
+      <a href="#workspace-content" className="skipLink">
+        Skip to content
+      </a>
       <aside className={s.sidebar}>
         <Link href="/" className={s.brand}>
           <span className={s.logo}>↗</span>TradeSim
@@ -61,9 +89,9 @@ export function Dashboard() {
               ["Activity", History],
             ] as const
           ).map(([name, Icon]) => (
-            <button
+            <Link
               key={name}
-              onClick={() => setView(name)}
+              href={workspaceRoutes[name]}
               className={`${s.navItem} ${view === name ? s.active : ""}`}
               aria-label={name}
               title={name}
@@ -77,7 +105,7 @@ export function Dashboard() {
               />
               {name}
               {name === "Markets" && <small>8</small>}
-            </button>
+            </Link>
           ))}
         </nav>
         <div className={s.sidebarBottom}>
@@ -94,12 +122,7 @@ export function Dashboard() {
           </p>
           <span className={s.tag}>PAPER TRADING</span>
         </div>
-        <div className={s.profile}>
-          <span className={s.avatar}>G</span>
-          <div>
-            Guest explorer<small>Local preview · not signed in</small>
-          </div>
-        </div>
+        <Profile user={account?.user ?? null} />
       </aside>
       <div className={s.main}>
         <header className={s.header}>
@@ -111,10 +134,15 @@ export function Dashboard() {
               <i />
               Simulation mode
             </span>
-            <span className={s.avatar}>G</span>
+            {!account && (
+              <>
+                <Link href="/login">Sign in</Link>
+                <Link href="/register">Register</Link>
+              </>
+            )}
           </div>
         </header>
-        <main>
+        <main id="workspace-content">
           <div className={s.titleRow}>
             <div>
               <div className={s.eyebrow}>YOUR NEXT CHAPTER STARTS HERE</div>
@@ -139,29 +167,37 @@ export function Dashboard() {
             <span>◈</span>
             <p>
               <strong>A safe space to learn.</strong> All prices and market
-              movements are simulated. Your AED 100,000 is virtual capital.
+              movements are simulated. Virtual funds only; no real trades are
+              executed.
             </p>
-            <span className={s.phase}>PHASE 1 PREVIEW</span>
+            <span className={s.phase}>
+              {account ? "VIRTUAL ACCOUNT" : "GUEST PREVIEW"}
+            </span>
           </div>
-          {(view === "Overview" || view === "Portfolio") && (
+          {account && (view === "Overview" || view === "Portfolio") && (
             <section className={s.stats} aria-label="Portfolio summary">
               {[
                 [
                   "Portfolio value",
-                  aed(STARTING_CAPITAL),
-                  "Your starting point",
+                  aed(portfolioValue),
+                  "Simulated portfolio valuation",
                   "◷",
                 ],
                 [
                   "Available balance",
-                  aed(STARTING_CAPITAL),
+                  aed(balance),
                   "Virtual buying power",
                   "▣",
                 ],
-                ["Total profit / loss", "AED 0.00", "0.00% all time", "↗"],
+                [
+                  "Total profit / loss",
+                  aed(profitLoss),
+                  `${((profitLoss / account.startingCapitalFils) * 100).toFixed(2)}% all time`,
+                  "↗",
+                ],
                 [
                   "Open positions",
-                  "0",
+                  String(account?.holdings.length ?? 0),
                   "Your portfolio is a blank canvas",
                   "▥",
                 ],
@@ -177,11 +213,13 @@ export function Dashboard() {
               ))}
             </section>
           )}
-          {view === "Overview" && (
+          {view === "Overview" && account && (
             <AccountOverview
+              account={account}
               onSelect={(stock) => {
-                setSelected(stock);
-                setView("Markets");
+                router.push(
+                  `/markets?symbol=${encodeURIComponent(stock.symbol)}&exchange=${stock.exchange}`,
+                );
               }}
             />
           )}
@@ -252,7 +290,50 @@ export function Dashboard() {
                     </a>
                   </div>
                 </section>
-                <OrderPreview stock={selected} />
+                {account ? (
+                  <OrderPreview
+                    stock={selected}
+                    balanceFils={balance}
+                    ownedShares={
+                      account?.holdings.find(
+                        (holding) =>
+                          holding.symbol === selected.symbol &&
+                          holding.exchange === selected.exchange,
+                      )?.quantity ?? 0
+                    }
+                  />
+                ) : (
+                  <section
+                    className={`${s.panel} ${s.guestPanel}`}
+                    aria-labelledby="guest-heading"
+                  >
+                    <span className={s.eyebrow}>YOUR NEXT STEP</span>
+                    <h2 id="guest-heading">
+                      Explore first.
+                      <br />
+                      Make it your own.
+                    </h2>
+                    <p>
+                      Browse simulated prices and charts freely. Sign in to
+                      access your private workspace and plan virtual orders.
+                    </p>
+                    <Link
+                      href="/register?returnTo=%2Fmarkets"
+                      className={s.primaryButton}
+                    >
+                      Create an account ↗
+                    </Link>
+                    <Link
+                      href="/login?returnTo=%2Fmarkets"
+                      className={s.guestSignIn}
+                    >
+                      Already registered? Sign In
+                    </Link>
+                    <small>
+                      Buy/Sell execution is unavailable until Phase 3.
+                    </small>
+                  </section>
+                )}
               </div>
               <section className={s.panel} id="markets">
                 <div className={s.tableHeading}>
@@ -377,7 +458,64 @@ export function Dashboard() {
               </section>
             </>
           )}
-          {(view === "Portfolio" || view === "Activity") && (
+          {view === "Portfolio" && account && account.holdings.length > 0 && (
+            <section className={s.panel}>
+              <div className={s.tableScroll}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Security</th>
+                      <th>Shares</th>
+                      <th>Cost basis</th>
+                      <th>Simulated value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {account.holdings.map((holding) => (
+                      <tr key={`${holding.exchange}:${holding.symbol}`}>
+                        <td>
+                          {holding.symbol} · {holding.exchange}
+                        </td>
+                        <td>{holding.quantity}</td>
+                        <td>{aed(holding.costBasisFils)}</td>
+                        <td>{aed(holding.valueFils)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+          {view === "Activity" && account && account.trades.length > 0 && (
+            <section className={s.panel}>
+              <div className={s.tableScroll}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Security</th>
+                      <th>Side</th>
+                      <th>Shares</th>
+                      <th>Value</th>
+                      <th>Date (UTC)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {account.trades.map((trade) => (
+                      <tr key={trade.id}>
+                        <td>{trade.symbol}</td>
+                        <td>{trade.side}</td>
+                        <td>{trade.quantity}</td>
+                        <td>{aed(trade.totalValueFils)}</td>
+                        <td>{trade.createdAt.slice(0, 10)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+          {((view === "Portfolio" && !account?.holdings.length) ||
+            (view === "Activity" && !account?.trades.length)) && (
             <section className={`${s.panel} ${s.emptyState}`}>
               <div className={s.orbit}>
                 <span>{view === "Portfolio" ? "◷" : "⇄"}</span>
@@ -389,10 +527,12 @@ export function Dashboard() {
               </h2>
               <p>
                 {view === "Portfolio"
-                  ? "This preview starts with AED 100,000 in virtual cash and no holdings."
+                  ? `Your ${account ? "saved account holds" : "preview starts with"} ${aed(balance)} in virtual cash and no holdings.`
                   : "Transaction history will become available with the trading engine."}
                 <br />
-                Accounts, persistence and trading are planned for a later phase.
+                {account
+                  ? "Your account is saved. Trading becomes available in Phase 3."
+                  : "Sign in or register to save your virtual account. Trading becomes available in Phase 3."}
               </p>
               <button
                 className={s.primaryButton}

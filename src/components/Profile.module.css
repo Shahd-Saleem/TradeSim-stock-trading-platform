@@ -1,0 +1,159 @@
+.profile,
+.guest {
+  position: relative;
+  border-top: 1px solid #2a3441;
+  padding-top: 20px;
+  margin-top: 10px;
+  flex-shrink: 0;
+}
+.profile summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: 6px;
+  min-width: 0;
+}
+.profile summary::-webkit-details-marker {
+  display: none;
+}
+.profile summary:focus-visible {
+  outline: 2px solid #67dec0;
+  outline-offset: 5px;
+}
+.avatar {
+  width: 32px;
+  height: 32px;
+  background: #24352f;
+  color: #94d7bd;
+  border: 1px solid #3b5548;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+.identity {
+  min-width: 0;
+  flex: 1;
+}
+.profile strong,
+.profile small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile strong {
+  font-size: 11px;
+  font-weight: 500;
+  color: #dae8e2;
+}
+.profile small {
+  color: #90a79e;
+  font-size: 9px;
+  margin-top: 6px;
+}
+.menu {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 0;
+  width: 245px;
+  max-width: calc(100vw - 32px);
+  padding: 18px;
+  border: 1px solid #3a5148;
+  background: #141f24;
+  border-radius: 9px;
+  box-shadow: 0 15px 45px #0008;
+  z-index: 20;
+}
+.menuIdentity {
+  border-bottom: 1px solid #2c4037;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+}
+.label {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 0.8px;
+  color: #8eb3a2;
+  margin-bottom: 14px;
+}
+.guest > a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #9acbb9;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.guest svg {
+  flex-shrink: 0;
+}
+.logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  background: #192d26;
+  border: 1px solid #365849;
+  border-radius: 5px;
+  color: #b0dfca;
+  padding: 10px 13px;
+  font-size: 11px;
+  width: 100%;
+}
+.logout:hover {
+  background: #244233;
+}
+.logout:disabled {
+  opacity: 0.7;
+}
+.error {
+  display: block;
+  color: #eaa3b2;
+  font-size: 10px;
+  line-height: 1.8;
+  margin-top: 9px;
+}
+@media (max-width: 950px) {
+  .identity,
+  .profile summary > svg,
+  .guest span {
+    display: none;
+  }
+  .profile summary,
+  .guest > a {
+    justify-content: center;
+  }
+  .menu {
+    bottom: 0;
+    left: calc(100% + 14px);
+  }
+  .profile,
+  .guest {
+    padding-top: 15px;
+  }
+  .guest > a {
+    min-height: 32px;
+  }
+}
+@media (max-width: 640px) {
+  .profile,
+  .guest {
+    border: 0;
+    padding: 0;
+    margin: 0 0 0 8px;
+  }
+  .menu {
+    top: calc(100% + 15px);
+    bottom: auto;
+    left: auto;
+    right: 0;
+  }
+  .avatar {
+    height: 30px;
+    width: 30px;
+  }
+}

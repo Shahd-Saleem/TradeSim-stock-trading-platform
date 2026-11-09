@@ -2,14 +2,28 @@
 import { useState } from "react";
 import { LockKeyhole } from "lucide-react";
 import type { Stock } from "@/lib/market";
-import { aed, STARTING_CAPITAL } from "@/lib/money";
+import { aed } from "@/lib/money";
 import { previewOrder, type OrderSide } from "@/lib/order-preview";
 import s from "./Dashboard.module.css";
 
-export function OrderPreview({ stock }: { stock: Stock }) {
+export function OrderPreview({
+  stock,
+  balanceFils,
+  ownedShares,
+}: {
+  stock: Stock;
+  balanceFils: number;
+  ownedShares: number;
+}) {
   const [side, setSide] = useState<OrderSide>("buy");
   const [quantity, setQuantity] = useState("");
-  const result = previewOrder(quantity, stock.priceFils, side);
+  const result = previewOrder(
+    quantity,
+    stock.priceFils,
+    side,
+    balanceFils,
+    ownedShares,
+  );
   return (
     <section
       className={`${s.panel} ${s.orderPanel}`}
@@ -70,11 +84,11 @@ export function OrderPreview({ stock }: { stock: Stock }) {
         </div>
         <div>
           <dt>Available virtual balance</dt>
-          <dd>{aed(STARTING_CAPITAL)}</dd>
+          <dd>{aed(balanceFils)}</dd>
         </div>
         <div>
           <dt>Shares held · {stock.symbol}</dt>
-          <dd>0</dd>
+          <dd>{ownedShares}</dd>
         </div>
         <div className={s.orderTotal}>
           <dt>Estimated {side === "buy" ? "cost" : "proceeds"}</dt>

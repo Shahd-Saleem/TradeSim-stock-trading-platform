@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  sessions      Session[]
+  credentials   Account[]
+  virtualAccount VirtualAccount?
+  watchlist      Watchlist[]
+}
+
+// Better Auth credential identities, separate from the virtual trading account.
+model Account {
+  id                    String @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt   DateTime? @db.Timestamptz(3)
+  refreshTokenExpiresAt  DateTime? @db.Timestamptz(3)
+  scope                 String?
+  password              String?
+  createdAt             DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime @updatedAt @db.Timestamptz(3)
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Session {
+  id        String @id
+  token     String @unique
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Verification {
+  id         String @id
+  identifier String
+  value      String
+  expiresAt  DateTime @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+  @@index([identifier])
+}
+
+model RateLimit {
+  id          String @id @default(uuid())
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+}
+
+model AuthThrottle {
+  key         String @id
+  count       Int
+  windowStart DateTime @db.Timestamptz(3)
+}
+
+model VirtualAccount {
+  id                  String @id @default(uuid())
+  userId              String @unique
+  user                User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currency            String @default("AED") @db.Char(3)
+  startingCapitalFils BigInt @default(10000000)
+  cashBalanceFils     BigInt @default(10000000)
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime @updatedAt @db.Timestamptz(3)
+  holdings            Holding[]
+  trades              Trade[]
+}
+
+model Security {
+  id        String @id @default(uuid())
+  symbol    String
+  exchange  String
+  name      String
+  sector    String
+  currency  String @default("AED") @db.Char(3)
+  color     String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  quotes    SimulatedQuote[]
+  holdings  Holding[]
+  trades    Trade[]
+  watchlist Watchlist[]
+  @@unique([exchange, symbol])
+}
+
+model SimulatedQuote {
+  id                String @id @default(uuid())
+  securityId        String
+  security          Security @relation(fields: [securityId], references: [id], onDelete: Cascade)
+  priceFils         BigInt
+  previousCloseFils BigInt
+  volume            String
+  snapshotAt        DateTime @db.Timestamptz(3)
+  createdAt         DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([securityId, snapshotAt])
+}
+
+model Holding {
+  id            String @id @default(uuid())
+  accountId     String
+  account       VirtualAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  securityId    String
+  security      Security @relation(fields: [securityId], references: [id], onDelete: Restrict)
+  quantity      BigInt
+  costBasisFils BigInt
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  @@unique([accountId, securityId])
+  @@index([securityId])
+}
+
+model Trade {
+  id             String @id @default(uuid())
+  accountId      String
+  account        VirtualAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  securityId     String
+  security       Security @relation(fields: [securityId], references: [id], onDelete: Restrict)
+  side           String
+  quantity       BigInt
+  priceFils      BigInt
+  totalValueFils BigInt
+  idempotencyKey String
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([accountId, idempotencyKey])
+  @@index([accountId, createdAt])
+  @@index([securityId])
+}
+
+model Watchlist {
+  id         String @id @default(uuid())
+  userId     String
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  securityId String
+  security   Security @relation(fields: [securityId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([userId, securityId])
+  @@index([securityId])
+}

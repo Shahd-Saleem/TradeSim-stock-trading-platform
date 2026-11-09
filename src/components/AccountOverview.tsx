@@ -1,14 +1,20 @@
 "use client";
 import { ArrowUpRight, Wallet } from "lucide-react";
 import { stocks, type Stock } from "@/lib/market";
-import { aed, changePercent, STARTING_CAPITAL } from "@/lib/money";
+import { aed, changePercent } from "@/lib/money";
 import s from "./Dashboard.module.css";
+import type { AccountData } from "@/lib/account-types";
 
 export function AccountOverview({
   onSelect,
+  account,
 }: {
   onSelect: (stock: Stock) => void;
+  account: AccountData;
 }) {
+  const balance = account.cashBalanceFils;
+  const value = account.portfolioValueFils;
+  const profitLoss = account.profitLossFils;
   const highlights = [...stocks].sort(
     (a, b) =>
       changePercent(b.priceFils, b.previousFils) -
@@ -24,26 +30,35 @@ export function AccountOverview({
           <div className={s.eyebrow}>YOUR ACCOUNT AT A GLANCE</div>
           <h2 id="performance-heading">Portfolio performance</h2>
           <div className={s.performanceValue}>
-            {aed(STARTING_CAPITAL)}
-            <span>0.00% return</span>
+            {aed(value)}
+            <span>
+              {((profitLoss / account.startingCapitalFils) * 100).toFixed(2)}%
+              return
+            </span>
           </div>
           <div
             className={s.performancePlot}
             role="img"
-            aria-label="Cash-only starting portfolio: AED 100,000, zero profit or loss. No performance history yet."
+            aria-label={`Current virtual portfolio value: ${aed(value)}. No historical performance series available.`}
           >
-            <span>AED 100,000</span>
+            <span>{aed(value)}</span>
             <div className={s.flatLine} />
-            <div className={s.plotCaption}>Starting balance · cash only</div>
+            <div className={s.plotCaption}>
+              Current balance snapshot · simulated valuation
+            </div>
           </div>
           <p>
-            No performance history yet. Your preview holds 100% virtual cash and
-            no stocks.
+            No historical performance series yet.{" "}
+            {account
+              ? "Your account balance is saved securely between sessions."
+              : "Sign in to save your virtual account."}
           </p>
           <div className={s.allocation}>
             <Wallet size={17} aria-hidden="true" />
             <span>Virtual cash</span>
-            <strong>100%</strong>
+            <strong>
+              {value === 0 ? "0.00" : ((balance / value) * 100).toFixed(2)}%
+            </strong>
           </div>
         </section>
         <section

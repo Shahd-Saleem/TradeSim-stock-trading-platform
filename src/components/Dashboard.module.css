@@ -311,6 +311,41 @@
   display: flex;
   min-height: 100vh;
 }
+.guestPanel {
+  padding: 28px;
+  background:
+    radial-gradient(ellipse at top right, #1b342a, transparent 80%), #11161f;
+}
+.guestPanel h2 {
+  font-size: 26px;
+  line-height: 1.4;
+  margin: 24px 0 16px;
+}
+.guestPanel p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: #9caebd;
+}
+.guestPanel .primaryButton {
+  display: block;
+  text-align: center;
+  line-height: 1.6;
+}
+.guestSignIn {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  color: #99d3bd;
+  margin: 19px 0;
+}
+.guestPanel > small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.8;
+  color: #849a8e;
+  border-top: 1px solid #2c4237;
+  padding-top: 17px;
+}
 .sidebar {
   width: 232px;
   background: #0e121a;
@@ -464,6 +499,18 @@
   display: flex;
   gap: 25px;
   align-items: center;
+}
+.headerRight > a {
+  color: #8dd2bb;
+  font-size: 11px;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .headerRight .simBadge {
+    font-size: 0;
+    padding: 7px;
+    gap: 0;
+  }
 }
 .simBadge {
   font-size: 11px;
@@ -967,6 +1014,7 @@
     font-size: 0;
     justify-content: center;
     padding: 12px;
+    gap: 0;
   }
   .navItem > span {
     font-size: 23px;
