@@ -32,7 +32,7 @@ function Change({ stock }: { stock: Stock }) {
   );
 }
 export function Dashboard({
-  account = null,
+  account: initialAccount = null,
   initialView = "Overview",
   initialSymbol,
   initialExchange,
@@ -43,6 +43,14 @@ export function Dashboard({
   initialExchange?: string;
 }) {
   const router = useRouter();
+  const [updatedAccount, setUpdatedAccount] = useState<AccountData | null>(
+    null,
+  );
+  const [orderLocked, setOrderLocked] = useState(false);
+  const account =
+    initialAccount && updatedAccount?.user.email === initialAccount.user.email
+      ? updatedAccount
+      : initialAccount;
   const balance = account?.cashBalanceFils ?? 0;
   const portfolioValue = account?.portfolioValueFils ?? 0;
   const profitLoss = account?.profitLossFils ?? 0;
@@ -292,15 +300,11 @@ export function Dashboard({
                 </section>
                 {account ? (
                   <OrderPreview
+                    key={`${selected.exchange}:${selected.symbol}`}
                     stock={selected}
-                    balanceFils={balance}
-                    ownedShares={
-                      account?.holdings.find(
-                        (holding) =>
-                          holding.symbol === selected.symbol &&
-                          holding.exchange === selected.exchange,
-                      )?.quantity ?? 0
-                    }
+                    account={account}
+                    onAccountChange={setUpdatedAccount}
+                    onLockChange={setOrderLocked}
                   />
                 ) : (
                   <section
@@ -329,9 +333,7 @@ export function Dashboard({
                     >
                       Already registered? Sign In
                     </Link>
-                    <small>
-                      Buy/Sell execution is unavailable until Phase 3.
-                    </small>
+                    <small>Sign in to buy and sell with virtual funds.</small>
                   </section>
                 )}
               </div>
@@ -394,6 +396,7 @@ export function Dashboard({
                           <td>
                             <button
                               className={s.company}
+                              disabled={orderLocked}
                               onClick={() => {
                                 setSelected(stock);
                                 document
@@ -429,6 +432,7 @@ export function Dashboard({
                           <td>
                             <button
                               className={s.chartLink}
+                              disabled={orderLocked}
                               onClick={() => {
                                 setSelected(stock);
                                 document
@@ -528,11 +532,11 @@ export function Dashboard({
               <p>
                 {view === "Portfolio"
                   ? `Your ${account ? "saved account holds" : "preview starts with"} ${aed(balance)} in virtual cash and no holdings.`
-                  : "Transaction history will become available with the trading engine."}
+                  : "Your confirmed simulated orders will appear here."}
                 <br />
                 {account
-                  ? "Your account is saved. Trading becomes available in Phase 3."
-                  : "Sign in or register to save your virtual account. Trading becomes available in Phase 3."}
+                  ? "Explore Markets to place a simulated order with virtual funds."
+                  : "Sign in or register to save your virtual account and place simulated orders."}
               </p>
               <button
                 className={s.primaryButton}

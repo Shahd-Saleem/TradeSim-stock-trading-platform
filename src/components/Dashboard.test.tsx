@@ -1,14 +1,16 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   cleanup,
   fireEvent,
   render,
   screen,
   within,
+  waitFor,
 } from "@testing-library/react";
 import { Dashboard } from "./Dashboard";
 import type { AccountData } from "@/lib/account-types";
+import { stocks } from "@/lib/market";
 const router = vi.hoisted(() => ({
   push: vi.fn(),
   replace: vi.fn(),
@@ -35,9 +37,29 @@ const account: AccountData = {
   holdings: [],
   trades: [],
 };
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) =>
+      Response.json(
+        url === "/api/account"
+          ? account
+          : {
+              priceFils: stocks.find((stock) =>
+                url.includes(`symbol=${stock.symbol}`),
+              )!.priceFils,
+              token: "test-quote",
+              expiresAt: Date.now() + 300000,
+              snapshotAt: "2026-11-09",
+            },
+      ),
+    ),
+  );
+});
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
 });
 describe("public and private workspace", () => {
   it("shows guest charts without personal balances, private views or order entry", () => {
@@ -132,13 +154,16 @@ describe("public and private workspace", () => {
       "/markets?symbol=FAB&exchange=ADX",
     );
   });
-  it("uses the saved balance for authenticated previews and keeps execution disabled", () => {
+  it("uses the saved balance for authenticated previews and requires review", async () => {
     Element.prototype.scrollIntoView = vi.fn();
     render(<Dashboard account={account} initialView="Markets" />);
     const panel = within(
       screen.getByRole("region", { name: "Plan your next move." }),
     );
     const quantity = panel.getByRole("textbox", { name: /Quantity/ });
+    await waitFor(() =>
+      expect(panel.queryByText(/Loading your account/)).toBeNull(),
+    );
     expect(panel.getByText("AED 50.00")).toBeTruthy();
     fireEvent.change(quantity, { target: { value: "3" } });
     expect(panel.getByText("AED 40.35")).toBeTruthy();
@@ -153,7 +178,7 @@ describe("public and private workspace", () => {
     expect(panel.getByText(/do not hold enough shares/)).toBeTruthy();
     expect(
       panel
-        .getByRole("button", { name: "Trading available in Phase 3" })
+        .getByRole("button", { name: "Review Sell" })
         .hasAttribute("disabled"),
     ).toBe(true);
     fireEvent.change(quantity, { target: { value: "2" } });
@@ -162,7 +187,11 @@ describe("public and private workspace", () => {
         name: "View Dubai Electricity & Water chart and order preview",
       }),
     );
-    expect(panel.getByText("AED 5.68")).toBeTruthy();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("textbox", { name: /Quantity/ }).getAttribute("value"),
+      ).toBe(""),
+    );
   });
   it.each([
     ["Portfolio", "Your first position is still ahead."],
@@ -174,4 +203,61 @@ describe("public and private workspace", () => {
       expect(screen.getByRole("heading", { name: heading })).toBeTruthy();
     },
   );
+  it("refreshes virtual cash and owned shares in place after a confirmed buy", async () => {
+    let traded = false;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (init?.method === "POST") {
+          traded = true;
+          return Response.json(
+            { ok: true, trade: { quantity: "1", totalValueFils: "1345" } },
+            { status: 201 },
+          );
+        }
+        return Response.json(
+          url === "/api/account"
+            ? traded
+              ? {
+                  ...account,
+                  cashBalanceFils: 3655,
+                  holdings: [
+                    {
+                      symbol: "EMAAR",
+                      exchange: "DFM",
+                      quantity: 1,
+                      costBasisFils: 1345,
+                      valueFils: 1345,
+                    },
+                  ],
+                }
+              : account
+            : {
+                priceFils: 1345,
+                token: "quote",
+                expiresAt: Date.now() + 300000,
+                snapshotAt: "2026-11-09",
+              },
+        );
+      }),
+    );
+    render(<Dashboard account={account} initialView="Markets" />);
+    await waitFor(() =>
+      expect(screen.queryByText(/Loading your account/)).toBeNull(),
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: /Quantity/ }), {
+      target: { value: "1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Review Buy" }));
+    expect(
+      screen
+        .getByRole("button", { name: "Select FAB chart" })
+        .hasAttribute("disabled"),
+    ).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm Buy" }));
+    await waitFor(() => expect(screen.getByText("AED 36.55")).toBeTruthy());
+    expect(
+      screen.getByText("Shares held · EMAAR").nextElementSibling?.textContent,
+    ).toBe("1");
+  });
 });

@@ -1,5 +1,7 @@
 # Feature 3.2: simulated trading backend
 
+Feature 3.3 now enables the authenticated interface and adds a signed quote endpoint and optional quoteToken guard. See [the current interface guide](phase3.3.md). The remaining sections describe the original backend contract, which remains compatible.
+
 The Buy/Sell UI remains disabled until Feature 3.3. These endpoints execute virtual orders only. Existing accounts are never reinitialized.
 
 ## API

@@ -1,4 +1,5 @@
 import type { PrismaClient, Trade } from "@/generated/prisma/client";
+import { verifyOrderQuote } from "./order-quote";
 import {
   calculateOrder,
   OrderError,
@@ -27,6 +28,7 @@ export async function executeOrder(
   userId: string,
   input: OrderInput,
   schema = "tradesim",
+  quoteSecret = process.env.BETTER_AUTH_SECRET ?? "",
 ) {
   if (!/^tradesim(?:_test_[a-f0-9]{24})?$/.test(schema))
     throw new Error("Invalid database schema");
@@ -103,11 +105,20 @@ export async function executeOrder(
           503,
         );
       const where = {
+        // The signed price is only a consistency guard; execution uses the DB quote.
         accountId_securityId: {
           accountId: account.id,
           securityId: security.id,
         },
       };
+      if (order.quoteToken)
+        verifyOrderQuote(
+          order.quoteToken,
+          order.exchange,
+          order.symbol,
+          quote,
+          quoteSecret,
+        );
       const holding = await tx.holding.findUnique({ where });
       const result = calculateOrder(
         order.side,

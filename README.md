@@ -1,6 +1,6 @@
 # TradeSim UAE
 
-Feature 3.2 adds the authenticated simulated trading backend; the Buy/Sell UI stays disabled until Feature 3.3. See [API, accounting and test documentation](docs/phase3.2.md). The earlier phase descriptions below describe their original scope.
+Feature 3.3 connects authenticated Buy/Sell confirmation, server-quoted previews, safe retries and account refreshes. See [the trading interface guide](docs/phase3.3.md) and [backend API documentation](docs/phase3.2.md). Earlier phase descriptions below describe their original scope.
 
 A responsive UAE paper-trading application built with Next.js App Router, React, TypeScript, CSS Modules, Prisma, PostgreSQL, Better Auth, Zod and TradingView Lightweight Charts. **Phase 2:** persistent virtual accounts and email/password authentication. All quotes, changes and volumes remain deterministic simulated fixtures, not live exchange data. Company names and symbols are illustrative identifiers; listing status is not verified.
 

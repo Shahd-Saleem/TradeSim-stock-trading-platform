@@ -69,7 +69,7 @@ export function Landing({ authenticated }: { authenticated: boolean }) {
             <p className={s.availability}>
               Accounts and market exploration are available now.
               <br />
-              Buy/Sell execution arrives in Phase 3.
+              Practice Buy/Sell orders with virtual funds.
             </p>
             <div className={s.heroFacts}>
               <div>
@@ -183,7 +183,7 @@ export function Landing({ authenticated }: { authenticated: boolean }) {
               {
                 Icon: ChartCandlestick,
                 title: "Build your perspective",
-                body: "Get comfortable with the numbers and plan your approach. Simulated Buy/Sell execution will be added in Phase 3.",
+                body: "Get comfortable with the numbers, review your orders and practice buying or selling with virtual funds.",
                 number: "03",
               },
             ].map(({ Icon, title, body, number }) => (

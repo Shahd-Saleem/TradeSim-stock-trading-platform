@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { config } from "dotenv";
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
@@ -9,14 +9,18 @@ import { createAuth } from "@/lib/auth-core";
 import { createOrderHttp } from "@/lib/order-http";
 import { executeOrder } from "@/lib/order-service";
 import type { OrderInput } from "@/lib/trading";
+import { readOrderQuote } from "@/lib/order-quote";
+import { orderQuoteResponse } from "@/lib/order-quote-http";
 
 config({ path: ".env.local", quiet: true });
+const quoteSecret = process.env.BETTER_AUTH_SECRET!;
 const schema = `tradesim_test_${randomBytes(12).toString("hex")}`;
 const baseURL = "http://localhost:3000";
 let admin: pg.Client;
 let owner: ReturnType<typeof createPrisma>;
 let db: ReturnType<typeof createPrisma>;
 let http: ReturnType<typeof createOrderHttp>;
+let auth: ReturnType<typeof createAuth>;
 let cookie = "";
 let alice: string;
 let bob: string;
@@ -43,6 +47,80 @@ const post = (body: unknown, session = cookie, origin = baseURL) =>
       body: JSON.stringify(body),
     }),
   );
+
+it("serves authenticated quotes and rejects expired, tampered or changed quotes without mutating accounts", async () => {
+  const url = `${baseURL}/api/orders/quote?exchange=DFM&symbol=EMAAR`;
+  expect(
+    (await orderQuoteResponse(auth, db, new Request(url), quoteSecret)).status,
+  ).toBe(401);
+  const quoteResponse = await orderQuoteResponse(
+    auth,
+    db,
+    new Request(url, { headers: { cookie } }),
+    quoteSecret,
+  );
+  expect(quoteResponse.status).toBe(200);
+  expect(quoteResponse.headers.get("Cache-Control")).toContain("no-store");
+  const quote = await quoteResponse.json();
+  const before = await account(alice);
+  const invalid = await post({
+    ...order("BUY", 1),
+    quoteToken: `${quote.token}x`,
+  });
+  expect(invalid.status).toBe(409);
+  let expiredToken: string;
+  const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() - 360000);
+  try {
+    expiredToken = (await readOrderQuote(db, "DFM", "EMAAR", quoteSecret))
+      .token;
+  } finally {
+    clock.mockRestore();
+  }
+  expect(
+    (await post({ ...order("BUY", 1), quoteToken: expiredToken! })).status,
+  ).toBe(409);
+  const security = await owner.security.findFirstOrThrow({
+    where: { symbol: "EMAAR" },
+  });
+  await owner.simulatedQuote.create({
+    data: {
+      securityId: security.id,
+      priceFils: 99n,
+      previousCloseFils: 100n,
+      volume: "1M",
+      snapshotAt: new Date("2026-11-08"),
+    },
+  });
+  // Editing the current quote in place must also invalidate the preview.
+  const latest = await owner.simulatedQuote.findFirstOrThrow({
+    where: { securityId: security.id },
+    orderBy: { snapshotAt: "desc" },
+  });
+  await owner.simulatedQuote.update({
+    where: { id: latest.id },
+    data: { priceFils: latest.priceFils + 1n },
+  });
+  expect(
+    (await post({ ...order("BUY", 1), quoteToken: quote.token })).status,
+  ).toBe(409);
+  expect(await account(alice)).toEqual(before);
+  await owner.simulatedQuote.update({
+    where: { id: latest.id },
+    data: { priceFils: latest.priceFils },
+  });
+  const input = { ...order("BUY", 1), quoteToken: quote.token };
+  expect((await post(input)).status).toBe(201);
+  await owner.simulatedQuote.update({
+    where: { id: latest.id },
+    data: { priceFils: latest.priceFils + 1n },
+  });
+  expect((await post(input)).status).toBe(200);
+  await owner.simulatedQuote.update({
+    where: { id: latest.id },
+    data: { priceFils: latest.priceFils },
+  });
+  await execute(order("SELL", 1));
+});
 
 beforeAll(async () => {
   try {
@@ -81,7 +159,7 @@ beforeAll(async () => {
     );
     owner = createPrisma(connection, schema);
     db = createPrisma(runtime, schema);
-    const auth = createAuth(db, baseURL, randomBytes(48).toString("hex"));
+    auth = createAuth(db, baseURL, randomBytes(48).toString("hex"));
     http = createOrderHttp(auth, db, baseURL, schema);
     const response = await auth.handler(
       new Request(`${baseURL}/api/auth/sign-up/email`, {

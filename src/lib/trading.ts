@@ -7,6 +7,7 @@ export const orderSchema = z
     side: z.enum(["BUY", "SELL"]),
     quantity: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
     idempotencyKey: z.uuid(),
+    quoteToken: z.string().min(1).max(2048).optional(),
   })
   .strict();
 export type OrderInput = z.infer<typeof orderSchema>;

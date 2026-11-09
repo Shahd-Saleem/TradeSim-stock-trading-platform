@@ -1203,3 +1203,45 @@
     font-size: 12px;
   }
 }
+.tradeButton {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #62deae;
+  border-radius: 9px;
+  background: #62deae;
+  color: #09261d;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.tradeButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.tradeSecondary {
+  padding: 10px 4px;
+  background: transparent;
+  border: 0;
+  color: #b8c9d5;
+  font: inherit;
+  cursor: pointer;
+}
+.tradeSecondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.tradeConfirmation {
+  padding: 12px;
+  border: 1px solid #38564b;
+  border-radius: 10px;
+}
+.tradeConfirmation p {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+.tradeSuccess {
+  color: #75e4b6;
+  font-size: 13px;
+  line-height: 1.6;
+}
