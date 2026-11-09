@@ -34,6 +34,13 @@ try {
     `GRANT INSERT, UPDATE, DELETE ON tradesim."User", tradesim."Account", tradesim."Session", tradesim."Verification", tradesim."RateLimit", tradesim."AuthThrottle", tradesim."Watchlist" TO ${role}`,
   );
   const url = new URL(original);
+  await admin.query(
+    `GRANT UPDATE ("cashBalanceFils", "updatedAt") ON tradesim."VirtualAccount" TO ${role}`,
+  );
+  await admin.query(
+    `GRANT INSERT, UPDATE, DELETE ON tradesim."Holding" TO ${role}`,
+  );
+  await admin.query(`GRANT INSERT ON tradesim."Trade" TO ${role}`);
   const username = decodeURIComponent(url.username).split(".");
   url.username = [role, ...username.slice(1)].join(".");
   url.password = password;

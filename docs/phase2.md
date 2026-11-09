@@ -1,5 +1,7 @@
 # Phase 2: persistent virtual accounts
 
+This guide describes Phase 2. Feature 3.2 deliberately adds narrow runtime trading permissions and authenticated order endpoints; see [the trading backend guide](phase3.2.md) for current behavior.
+
 Supabase hosts PostgreSQL. Prisma 7 handles the schema, migrations and application queries; Better Auth handles email/password identities and database-backed sessions. This application does not use Supabase Auth or its browser Data API.
 
 ## Local setup
