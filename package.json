@@ -1,0 +1,46 @@
+{
+  "name": "tradesim-stock-trading-platform",
+  "version": "1.0.0",
+  "description": "Full-stack simulated trading platform built with Next.js, React, TypeScript, Node.js, and PostgreSQL.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shahd-Saleem/TradeSim-stock-trading-platform.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Shahd-Saleem/TradeSim-stock-trading-platform/issues"
+  },
+  "homepage": "https://github.com/Shahd-Saleem/TradeSim-stock-trading-platform#readme",
+  "private": true,
+  "dependencies": {
+    "lightweight-charts": "^5.2.1",
+    "lucide-react": "^1.70.0",
+    "next": "^16.4.5",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.5",
+    "jsdom": "^29.1.1",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
+  }
+}
