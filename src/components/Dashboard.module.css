@@ -6,14 +6,14 @@
 .overviewGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
-  gap: 22px;
-  margin-bottom: 24px;
+  gap: 16px;
+  margin-bottom: 18px;
 }
 .performance,
 .watchlist,
 .highlights,
 .orderPanel {
-  padding: 24px;
+  padding: 18px;
 }
 .performance > p,
 .watchlist > p,
@@ -23,8 +23,8 @@
   line-height: 1.8;
 }
 .performanceValue {
-  font-size: 29px;
-  margin-top: 23px;
+  font-size: 26px;
+  margin-top: 16px;
   letter-spacing: -0.7px;
 }
 .performanceValue span {
@@ -35,9 +35,9 @@
   margin-top: 9px;
 }
 .performancePlot {
-  height: 145px;
+  height: 112px;
   position: relative;
-  margin-top: 20px;
+  margin-top: 14px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -70,8 +70,8 @@
   align-items: center;
   gap: 10px;
   border-top: 1px solid #26313c;
-  padding-top: 15px;
-  margin-top: 20px;
+  padding-top: 12px;
+  margin-top: 14px;
   color: #8fbdac;
   font-size: 12px;
 }
@@ -88,7 +88,7 @@
   border: 0;
   border-top: 1px solid #26313c;
   color: #dbe4ee;
-  padding: 18px 0;
+  padding: 13px 0;
   text-align: left;
   font-size: 11px;
 }
@@ -121,8 +121,8 @@
 .highlightGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 18px;
-  margin-top: 20px;
+  gap: 14px;
+  margin-top: 14px;
 }
 .highlightGrid button {
   text-align: left;
@@ -130,7 +130,7 @@
   background: #121c24;
   color: #e9edf5;
   border-radius: 7px;
-  padding: 20px;
+  padding: 16px;
 }
 .highlightGrid button:hover {
   border-color: #53766c;
@@ -145,7 +145,7 @@
   gap: 10px;
   font-size: 15px;
   font-weight: 500;
-  margin: 14px 0;
+  margin: 10px 0;
 }
 .highlightGrid button > span {
   font-size: 12px;
@@ -156,8 +156,8 @@
 .stockDetails {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 15px;
-  margin: 22px 0 0;
+  gap: 12px;
+  margin: 14px 0 0;
   letter-spacing: 0;
 }
 .stockDetails dt {
@@ -165,7 +165,7 @@
   font-size: 9px;
 }
 .stockDetails dd {
-  margin: 8px 0 0;
+  margin: 5px 0 0;
   font-size: 11px;
   line-height: 1.6;
   color: #c4cfde;
@@ -185,7 +185,7 @@
   background: #0b1119;
   border: 1px solid #28313e;
   border-radius: 6px;
-  margin: 20px 0;
+  margin: 14px 0;
 }
 .sideControl button {
   flex: 1;
@@ -234,7 +234,7 @@
 .inputError {
   font-size: 10px;
   line-height: 1.7;
-  min-height: 34px;
+  min-height: 30px;
   margin: 9px 0;
   overflow-wrap: anywhere;
 }
@@ -245,15 +245,15 @@
   color: #f0a2b1;
 }
 .orderSummary {
-  margin: 16px 0;
+  margin: 12px 0;
 }
 .orderSummary > div {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 14px;
-  margin: 14px 0;
-  font-size: 10px;
+  margin: 12px 0;
+  font-size: 11px;
 }
 .orderSummary dt {
   color: #8998ad;
@@ -267,7 +267,7 @@
 }
 .orderSummary .orderTotal {
   border-top: 1px solid #2a3544;
-  padding-top: 17px;
+  padding-top: 13px;
   font-size: 12px;
 }
 .orderPanel .disabledButton {
@@ -281,6 +281,9 @@
 }
 .analysisGrid {
   scroll-margin-top: 30px;
+  grid-template-columns: minmax(0, 1fr) minmax(290px, 320px);
+  gap: 16px;
+  margin-bottom: 18px;
 }
 @media (max-width: 950px) {
   .overviewGrid {
@@ -312,14 +315,14 @@
   min-height: 100vh;
 }
 .guestPanel {
-  padding: 28px;
+  padding: 20px;
   background:
     radial-gradient(ellipse at top right, #1b342a, transparent 80%), #11161f;
 }
 .guestPanel h2 {
-  font-size: 26px;
+  font-size: 23px;
   line-height: 1.4;
-  margin: 24px 0 16px;
+  margin: 18px 0 12px;
 }
 .guestPanel p {
   font-size: 12px;
@@ -347,21 +350,21 @@
   padding-top: 17px;
 }
 .sidebar {
-  width: 232px;
+  width: 208px;
   background: #0e121a;
   border-right: 1px solid #222834;
   position: fixed;
   inset: 0 auto 0 0;
   display: flex;
   flex-direction: column;
-  padding: 32px 20px;
+  padding: 24px 16px;
   z-index: 5;
 }
 .brand {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 23px;
+  font-size: 21px;
   font-weight: 700;
   letter-spacing: -1px;
 }
@@ -386,20 +389,21 @@
   font-size: 10px;
   letter-spacing: 1.5px;
   color: #657187;
-  margin: 49px 12px 18px;
+  margin: 32px 10px 12px;
 }
 .navItem {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
   background: none;
   border: 0;
   color: #8c98ac;
   border-radius: 7px;
-  padding: 13px 14px;
+  padding: 11px 12px;
   text-align: left;
-  margin: 5px 0;
+  margin: 3px 0;
+  min-height: 42px;
 }
 .navItem > span {
   font-size: 20px;
@@ -420,15 +424,15 @@
 }
 .sidebarBottom {
   margin-top: auto;
-  padding: 40px 12px 27px;
+  padding: 24px 10px 20px;
 }
 .practiceIcon {
   color: #55d7af;
-  font-size: 32px;
-  margin-bottom: 14px;
+  font-size: 28px;
+  margin-bottom: 10px;
 }
 .sidebarBottom strong {
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.6;
   font-weight: 500;
 }
@@ -473,19 +477,20 @@
   font-size: 12px;
 }
 .main {
-  margin-left: 232px;
+  margin-left: 208px;
   min-width: 0;
-  width: calc(100% - 232px);
+  width: calc(100% - 208px);
 }
 .header {
-  height: 77px;
-  padding: 0 38px;
+  height: 60px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #202632;
   color: #8591a3;
   font-size: 12px;
+  gap: 16px;
 }
 .header strong {
   font-weight: 400;
@@ -497,7 +502,7 @@
 }
 .headerRight {
   display: flex;
-  gap: 25px;
+  gap: 18px;
   align-items: center;
 }
 .headerRight > a {
@@ -533,15 +538,16 @@
   display: inline-block;
 }
 .main main {
-  padding: 34px 38px 0;
-  max-width: 1600px;
+  padding: 22px 24px 0;
+  max-width: 1500px;
   margin: auto;
 }
 .titleRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
+  margin-bottom: 18px;
+  gap: 20px;
 }
 .eyebrow {
   font-size: 9px;
@@ -550,10 +556,11 @@
   font-weight: 600;
 }
 .shell h1 {
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 500;
   letter-spacing: -1px;
-  margin: 12px 0;
+  margin: 8px 0;
+  line-height: 1.25;
 }
 .subtitle {
   color: #8994a7;
@@ -578,8 +585,8 @@
   background: #12201e;
   border: 1px solid #263c35;
   border-radius: 8px;
-  padding: 12px 15px;
-  margin-bottom: 24px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
   color: #9bb8ad;
 }
 .notice > span:first-child {
@@ -604,15 +611,16 @@
 }
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
 }
 .stat {
   background: #11161f;
   border: 1px solid #242b37;
   border-radius: 9px;
-  padding: 20px;
+  padding: 16px;
+  min-width: 0;
 }
 .stat > div {
   display: flex;
@@ -627,15 +635,18 @@
 }
 .stat > strong {
   display: block;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 500;
   letter-spacing: -0.7px;
-  margin: 17px 0 13px;
-  white-space: nowrap;
+  margin: 12px 0 8px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 .stat small {
   color: #7b899e;
   font-size: 10px;
+  line-height: 1.5;
 }
 .positive {
   color: #58d4ad;
@@ -647,9 +658,9 @@
 }
 .analysisGrid {
   display: grid;
-  grid-template-columns: minmax(0, 2.3fr) minmax(250px, 1fr);
-  gap: 22px;
-  margin-bottom: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(290px, 320px);
+  gap: 16px;
+  margin-bottom: 18px;
 }
 .panel {
   background: #11161f;
@@ -658,11 +669,12 @@
   min-width: 0;
 }
 .panelHeader {
-  padding: 22px 23px 0;
+  padding: 18px 18px 0;
   display: flex;
   justify-content: space-between;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
 }
 .shell h2 {
   font-size: 17px;
@@ -680,15 +692,17 @@
   background: #0d121a;
   border-radius: 5px;
   gap: 2px;
+  flex-shrink: 0;
 }
 .periods button,
 .filters button {
   border: 0;
   background: none;
   color: #8591a4;
-  font-size: 10px;
+  font-size: 11px;
   padding: 7px 10px;
   border-radius: 4px;
+  min-height: 32px;
 }
 .periods .selected,
 .filters .selected {
@@ -696,8 +710,8 @@
   color: #88debf;
 }
 .chartPrice {
-  padding: 13px 23px 15px;
-  font-size: 27px;
+  padding: 10px 18px 12px;
+  font-size: 25px;
   letter-spacing: -0.7px;
 }
 .chartPrice > span {
@@ -714,10 +728,12 @@
 .chartFooter {
   display: flex;
   justify-content: space-between;
-  padding: 15px 22px;
+  padding: 12px 18px;
   font-size: 9px;
   color: #748298;
   border-top: 1px solid #202734;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .chartFooter i {
   margin-right: 6px;
@@ -751,7 +767,7 @@
   border-radius: 5px;
   font-size: 11px;
   padding: 12px 14px;
-  margin-top: 22px;
+  margin-top: 16px;
 }
 .previewNote {
   display: block;
@@ -761,7 +777,7 @@
   margin-top: 10px;
 }
 .tableHeading {
-  padding: 22px 23px 19px;
+  padding: 18px 18px 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -809,9 +825,10 @@
 .filters {
   display: flex;
   gap: 7px;
-  padding: 0 23px 16px;
+  padding: 0 18px 12px;
   align-items: center;
   border-bottom: 1px solid #242b37;
+  flex-wrap: wrap;
 }
 .filters > span {
   margin-left: auto;
@@ -820,25 +837,27 @@
 }
 .tableScroll {
   overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
 }
-.shell table {
+.tableScroll table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
   white-space: nowrap;
 }
-.shell th {
-  font-size: 9px;
+.tableScroll th {
+  font-size: 11px;
   letter-spacing: 0.3px;
   color: #718096;
   font-weight: 400;
   background: #10151e;
-  padding: 13px 23px;
+  padding: 10px 16px;
 }
-.shell td {
-  padding: 12px 23px;
+.tableScroll td {
+  padding: 10px 16px;
   border-top: 1px solid #202733;
-  font-size: 11px;
+  font-size: 12px;
 }
 .company {
   display: flex;
@@ -857,17 +876,18 @@
 .company small {
   display: block;
   color: #748298;
-  font-size: 9px;
-  margin-top: 6px;
+  font-size: 10px;
+  margin-top: 4px;
 }
 .stockIcon {
   display: grid;
   place-items: center;
-  width: 33px;
-  height: 33px;
+  width: 30px;
+  height: 30px;
   border-radius: 7px;
   font-size: 11px;
   font-weight: 600;
+  flex-shrink: 0;
 }
 .exchange {
   background: #202735;
@@ -887,7 +907,7 @@
 .selectedRow {
   background: #141f23;
 }
-.shell tbody tr:hover {
+.tableScroll tbody tr:hover {
   background: #17212c;
 }
 .chartLink {
@@ -896,10 +916,11 @@
   color: #83bdab;
   font-size: 10px;
   padding: 6px;
+  min-height: 32px;
 }
 .tableFooter {
   border-top: 1px solid #242b37;
-  padding: 14px 23px;
+  padding: 12px 18px;
   font-size: 9px;
   color: #6e7c92;
 }
@@ -907,9 +928,10 @@
   display: flex;
   justify-content: space-between;
   gap: 15px;
-  padding: 27px 0;
+  padding: 20px 0;
   font-size: 9px;
   color: #68768b;
+  flex-wrap: wrap;
 }
 .footer > span > span {
   margin: 0 8px;
@@ -927,9 +949,9 @@
   font-size: 12px;
 }
 .emptyState {
-  padding: 60px 25px;
+  padding: 44px 24px;
   text-align: center;
-  min-height: 400px;
+  min-height: 320px;
 }
 .emptyState .orbit {
   margin: 0 auto 35px;
@@ -951,11 +973,8 @@
   margin-top: 20px;
 }
 @media (min-width: 1500px) {
-  .stat > strong {
-    font-size: 29px;
-  }
   .main main {
-    padding-top: 40px;
+    padding: 26px 32px 0;
   }
 }
 @media (max-width: 1200px) {
@@ -985,8 +1004,8 @@
   .shell h1 {
     font-size: 26px;
   }
-  .shell td,
-  .shell th {
+  .tableScroll td,
+  .tableScroll th {
     padding-left: 16px;
     padding-right: 16px;
   }

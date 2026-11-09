@@ -2,13 +2,13 @@
 import { useEffect, useRef } from "react";
 import { AreaSeries, ColorType, createChart } from "lightweight-charts";
 import { history, type Stock } from "@/lib/market";
+import s from "./PriceChart.module.css";
 export function PriceChart({ stock, days }: { stock: Stock; days: number }) {
   const container = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!container.current) return;
     const chart = createChart(container.current, {
       autoSize: true,
-      height: 280,
       layout: {
         background: { type: ColorType.Solid, color: "#11161f" },
         textColor: "#7d899d",
@@ -37,7 +37,7 @@ export function PriceChart({ stock, days }: { stock: Stock; days: number }) {
       role="img"
       aria-label={`${stock.name} simulated price chart, ${days} days, ending at AED ${(stock.priceFils / 100).toFixed(2)}`}
       ref={container}
-      style={{ height: 280, width: "100%" }}
+      className={s.container}
     />
   );
 }
