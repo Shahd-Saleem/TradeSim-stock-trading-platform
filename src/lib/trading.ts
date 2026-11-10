@@ -8,6 +8,10 @@ export const orderSchema = z
     quantity: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
     idempotencyKey: z.uuid(),
     quoteToken: z.string().min(1).max(2048).optional(),
+    expectedCashBalanceFils: z
+      .string()
+      .regex(/^\d{1,16}$/)
+      .optional(),
   })
   .strict();
 export type OrderInput = z.infer<typeof orderSchema>;

@@ -11,6 +11,7 @@ import {
 import { Dashboard } from "./Dashboard";
 import type { AccountData } from "@/lib/account-types";
 import { stocks } from "@/lib/market";
+import { holdingAnalytics } from "@/lib/portfolio";
 const router = vi.hoisted(() => ({
   push: vi.fn(),
   replace: vi.fn(),
@@ -34,10 +35,21 @@ const account: AccountData = {
   startingCapitalFils: 10000000,
   portfolioValueFils: 5000,
   profitLossFils: -9995000,
+  valuationComplete: true,
+  realizedProfitLossFils: 0,
+  unrealizedProfitLossFils: 0,
+  returnBasisPoints: 0,
+  cashAdjustmentFils: -9995000,
   holdings: [],
   trades: [],
 };
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute("open");
+  };
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) =>
@@ -241,7 +253,7 @@ describe("public and private workspace", () => {
         );
       }),
     );
-    render(<Dashboard account={account} initialView="Markets" />);
+    const view = render(<Dashboard account={account} initialView="Markets" />);
     await waitFor(() =>
       expect(screen.queryByText(/Loading your account/)).toBeNull(),
     );
@@ -256,8 +268,85 @@ describe("public and private workspace", () => {
     ).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Confirm Buy" }));
     await waitFor(() => expect(screen.getByText("AED 36.55")).toBeTruthy());
+    await waitFor(() =>
+      expect(
+        screen.getByText("Shares held · EMAAR").nextElementSibling?.textContent,
+      ).toBe("1"),
+    );
+    view.rerender(
+      <Dashboard
+        account={{
+          ...account,
+          cashBalanceFils: 10000,
+          portfolioValueFils: 10000,
+        }}
+        initialView="Overview"
+      />,
+    );
     expect(
-      screen.getByText("Shares held · EMAAR").nextElementSibling?.textContent,
-    ).toBe("1");
+      screen.getByRole("region", { name: "Portfolio summary" }).textContent,
+    ).toContain("AED 100.00");
+  });
+  it.each([0, 1, 2])(
+    "describes %s actual positions and shows honest history",
+    (count) => {
+      render(
+        <Dashboard
+          initialView="Overview"
+          account={{
+            ...account,
+            holdings: Array.from({ length: count }, (_, index) => ({
+              symbol: `TEST${index}`,
+              exchange: "DFM",
+              name: "Test holding",
+              quoteSnapshotAt: "2026-11-09",
+              ...holdingAnalytics(1n, 100n, 100n),
+            })),
+          }}
+        />,
+      );
+      expect(
+        screen.getByText(
+          count === 0
+            ? "No open positions yet"
+            : `${count} active ${count === 1 ? "holding" : "holdings"} in your portfolio`,
+        ),
+      ).toBeTruthy();
+      expect(screen.getByText("Insufficient performance history")).toBeTruthy();
+      expect(screen.queryByText("Your portfolio is a blank canvas")).toBeNull();
+      expect(
+        screen.queryByRole("img", { name: /Current virtual portfolio/ }),
+      ).toBeNull();
+    },
+  );
+  it("keeps closed-portfolio realized returns visible without implying the user has never traded", () => {
+    render(
+      <Dashboard
+        initialView="Portfolio"
+        account={{
+          ...account,
+          cashBalanceFils: 10000218,
+          portfolioValueFils: 10000218,
+          realizedProfitLossFils: 218,
+          unrealizedProfitLossFils: 0,
+          profitLossFils: 218,
+          cashAdjustmentFils: 0,
+          trades: [
+            {
+              id: "closed",
+              symbol: "EMAAR",
+              side: "SELL",
+              quantity: 3,
+              totalValueFils: 420,
+              createdAt: "2026-11-09T00:00:00.000Z",
+            },
+          ],
+        }}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { name: "No open positions right now." }),
+    ).toBeTruthy();
+    expect(screen.getAllByText(/Gain \+AED 2.18/).length).toBeGreaterThan(0);
   });
 });

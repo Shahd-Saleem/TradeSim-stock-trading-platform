@@ -59,6 +59,11 @@ describe("server-side personal route protection", () => {
       startingCapitalFils: 10000000,
       portfolioValueFils: 5000,
       profitLossFils: -9995000,
+      valuationComplete: true,
+      realizedProfitLossFils: 0,
+      unrealizedProfitLossFils: 0,
+      returnBasisPoints: 0,
+      cashAdjustmentFils: -9995000,
       holdings: [],
       trades: [],
     };

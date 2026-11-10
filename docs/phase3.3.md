@@ -1,5 +1,7 @@
 # Feature 3.3: simulated Buy/Sell interface
 
+Feature 3.4 replaces inline confirmation with an accessible dialog, removes routine quote refresh controls, reloads stale previews automatically and adds a cash-consistency guard. See [the current portfolio and confirmation guide](phase3.4.md).
+
 Authenticated users can select a stock in Markets, choose Buy or Sell, and enter a positive whole-number quantity. The panel loads their account and the database's latest simulated quote, recalculates quantity and AED cost/proceeds, and shows available virtual cash and owned shares. It never substitutes fixture prices for a failed order quote. Guests continue to see public fixture charts without personal account data or trading controls.
 
 Review Buy / Review Sell freezes the intended order. Confirm Buy / Confirm Sell is a separate action that sends POST /api/orders. Back to edit abandons an unsubmitted confirmation. Inputs and stock selection are disabled while confirming or resolving an order. A synchronous request guard also prevents rapid duplicate clicks.

@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { workspaceRoutes, type WorkspaceView } from "@/lib/navigation";
@@ -16,6 +16,8 @@ import { aed, changePercent } from "@/lib/money";
 import { PriceChart } from "./PriceChart";
 import type { AccountData } from "@/lib/account-types";
 import { Profile } from "./Profile";
+import { PortfolioHoldings } from "./PortfolioHoldings";
+import { percentLabel, positionDescription } from "@/lib/portfolio";
 import s from "./Dashboard.module.css";
 const periods = [
   { label: "1M", days: 30 },
@@ -43,17 +45,22 @@ export function Dashboard({
   initialExchange?: string;
 }) {
   const router = useRouter();
-  const [updatedAccount, setUpdatedAccount] = useState<AccountData | null>(
-    null,
+  const [accountUpdate, setAccountUpdate] = useState<{
+    source: AccountData | null;
+    data: AccountData;
+  } | null>(null);
+  const setUpdatedAccount = useCallback(
+    (data: AccountData) => setAccountUpdate({ source: initialAccount, data }),
+    [initialAccount],
   );
   const [orderLocked, setOrderLocked] = useState(false);
   const account =
-    initialAccount && updatedAccount?.user.email === initialAccount.user.email
-      ? updatedAccount
+    accountUpdate?.source === initialAccount
+      ? accountUpdate.data
       : initialAccount;
   const balance = account?.cashBalanceFils ?? 0;
-  const portfolioValue = account?.portfolioValueFils ?? 0;
-  const profitLoss = account?.profitLossFils ?? 0;
+  const portfolioValue = account?.portfolioValueFils ?? null;
+  const profitLoss = account?.profitLossFils ?? null;
   const view = account ? initialView : "Markets";
   const setView = (name: WorkspaceView) => router.push(workspaceRoutes[name]);
   const [query, setQuery] = useState("");
@@ -186,8 +193,8 @@ export function Dashboard({
             <section className={s.stats} aria-label="Portfolio summary">
               {[
                 [
-                  "Portfolio value",
-                  aed(portfolioValue),
+                  "Portfolio equity",
+                  portfolioValue === null ? "Unavailable" : aed(portfolioValue),
                   "Simulated portfolio valuation",
                   "◷",
                 ],
@@ -199,14 +206,16 @@ export function Dashboard({
                 ],
                 [
                   "Total profit / loss",
-                  aed(profitLoss),
-                  `${((profitLoss / account.startingCapitalFils) * 100).toFixed(2)}% all time`,
+                  profitLoss === null
+                    ? "Unavailable"
+                    : `${profitLoss > 0 ? "+" : ""}${aed(profitLoss)}`,
+                  `${percentLabel(account.returnBasisPoints)} all time`,
                   "↗",
                 ],
                 [
                   "Open positions",
                   String(account?.holdings.length ?? 0),
-                  "Your portfolio is a blank canvas",
+                  positionDescription(account.holdings.length),
                   "▥",
                 ],
               ].map(([label, value, description, icon]) => (
@@ -462,33 +471,8 @@ export function Dashboard({
               </section>
             </>
           )}
-          {view === "Portfolio" && account && account.holdings.length > 0 && (
-            <section className={s.panel}>
-              <div className={s.tableScroll}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Security</th>
-                      <th>Shares</th>
-                      <th>Cost basis</th>
-                      <th>Simulated value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {account.holdings.map((holding) => (
-                      <tr key={`${holding.exchange}:${holding.symbol}`}>
-                        <td>
-                          {holding.symbol} · {holding.exchange}
-                        </td>
-                        <td>{holding.quantity}</td>
-                        <td>{aed(holding.costBasisFils)}</td>
-                        <td>{aed(holding.valueFils)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+          {view === "Portfolio" && account && (
+            <PortfolioHoldings account={account} />
           )}
           {view === "Activity" && account && account.trades.length > 0 && (
             <section className={s.panel}>
@@ -526,7 +510,9 @@ export function Dashboard({
               </div>
               <h2>
                 {view === "Portfolio"
-                  ? "Your first position is still ahead."
+                  ? account?.trades.length
+                    ? "No open positions right now."
+                    : "Your first position is still ahead."
                   : "No transactions yet."}
               </h2>
               <p>

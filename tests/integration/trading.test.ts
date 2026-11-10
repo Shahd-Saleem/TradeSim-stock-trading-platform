@@ -11,6 +11,7 @@ import { executeOrder } from "@/lib/order-service";
 import type { OrderInput } from "@/lib/trading";
 import { readOrderQuote } from "@/lib/order-quote";
 import { orderQuoteResponse } from "@/lib/order-quote-http";
+import { readAccount } from "@/lib/account-service";
 
 config({ path: ".env.local", quiet: true });
 const quoteSecret = process.env.BETTER_AUTH_SECRET!;
@@ -120,6 +121,172 @@ it("serves authenticated quotes and rejects expired, tampered or changed quotes 
     data: { priceFils: latest.priceFils },
   });
   await execute(order("SELL", 1));
+});
+
+it("persists exact portfolio analytics through weighted buys, partial sales, missing quotes and closure", async () => {
+  const userId = randomUUID();
+  await owner.user.create({
+    data: { id: userId, name: "Analytics", email: `${userId}@example.test` },
+  });
+  const security = await owner.security.create({
+    data: {
+      symbol: "ANALYTICS",
+      exchange: "DFM",
+      name: "Analytics test",
+      sector: "Test",
+      color: "#fff",
+    },
+  });
+  const setPrice = (price: bigint, date: string) =>
+    owner.simulatedQuote.create({
+      data: {
+        securityId: security.id,
+        priceFils: price,
+        previousCloseFils: 100n,
+        volume: "1M",
+        snapshotAt: new Date(date),
+      },
+    });
+  const trade = (side: "BUY" | "SELL", quantity: number) =>
+    execute({ ...order(side, quantity), symbol: "ANALYTICS" }, userId);
+  const otherBefore = await readAccount(db, alice);
+  expect((await readAccount(db, userId)).portfolioValueFils).toBe(10000000);
+  await setPrice(100n, "2026-11-09");
+  await trade("BUY", 3);
+  expect((await readAccount(db, userId)).profitLossFils).toBe(0);
+  await setPrice(101n, "2026-11-10");
+  await trade("BUY", 2);
+  await setPrice(150n, "2026-11-11");
+  await trade("SELL", 2);
+  const saved = await readAccount(db, userId);
+  expect(saved).toMatchObject({
+    cashBalanceFils: 9999798,
+    portfolioValueFils: 10000248,
+    realizedProfitLossFils: 100,
+    unrealizedProfitLossFils: 148,
+    profitLossFils: 248,
+  });
+  expect(saved.holdings[0]).toMatchObject({
+    quantity: 3,
+    averagePriceFils: 101,
+    costBasisFils: 302,
+    priceFils: 150,
+    valueFils: 450,
+    estimatedSaleProceedsFils: 450,
+    estimatedSaleProfitLossFils: 148,
+  });
+  const refreshed = createPrisma(
+    process.env.TEST_RUNTIME_DATABASE_URL || process.env.DATABASE_URL,
+    schema,
+  );
+  try {
+    expect(await readAccount(refreshed, userId)).toEqual(saved);
+  } finally {
+    await refreshed.$disconnect();
+  }
+  await owner.simulatedQuote.deleteMany({ where: { securityId: security.id } });
+  expect(await readAccount(db, userId)).toMatchObject({
+    valuationComplete: false,
+    portfolioValueFils: null,
+    profitLossFils: null,
+    realizedProfitLossFils: 100,
+    unrealizedProfitLossFils: null,
+  });
+  await setPrice(140n, "2026-11-12");
+  await trade("SELL", 3);
+  expect(await readAccount(db, userId)).toMatchObject({
+    portfolioValueFils: 10000218,
+    profitLossFils: 218,
+    realizedProfitLossFils: 218,
+    unrealizedProfitLossFils: 0,
+    holdings: [],
+  });
+  expect(await readAccount(db, alice)).toEqual(otherBefore);
+  await expect(readAccount(db, randomUUID())).rejects.toThrow(
+    "Virtual account unavailable",
+  );
+}, 120000);
+
+it("aggregates the full ledger beyond the 100 displayed trades", async () => {
+  const userId = randomUUID();
+  await owner.user.create({
+    data: { id: userId, name: "Long ledger", email: `${userId}@example.test` },
+  });
+  const security = await owner.security.create({
+    data: {
+      symbol: "BULK",
+      exchange: "ADX",
+      name: "Ledger test",
+      sector: "Test",
+      color: "#fff",
+      quotes: {
+        create: {
+          priceFils: 110n,
+          previousCloseFils: 100n,
+          volume: "1M",
+          snapshotAt: new Date("2026-11-09"),
+        },
+      },
+    },
+  });
+  const virtual = await account(userId);
+  await owner.$transaction(async (tx) => {
+    await tx.trade.createMany({
+      data: Array.from({ length: 110 }, () => ({
+        accountId: virtual.id,
+        securityId: security.id,
+        side: "BUY",
+        quantity: 1n,
+        priceFils: 100n,
+        totalValueFils: 100n,
+        idempotencyKey: randomUUID(),
+      })),
+    });
+    await tx.holding.create({
+      data: {
+        accountId: virtual.id,
+        securityId: security.id,
+        quantity: 110n,
+        costBasisFils: 11000n,
+      },
+    });
+    await tx.virtualAccount.update({
+      where: { id: virtual.id },
+      data: { cashBalanceFils: 9989000n },
+    });
+  });
+  await execute(
+    { ...order("SELL", 10), symbol: "BULK", exchange: "ADX" },
+    userId,
+  );
+  const result = await readAccount(db, userId);
+  expect(result.trades).toHaveLength(100);
+  expect(result).toMatchObject({
+    portfolioValueFils: 10001100,
+    realizedProfitLossFils: 100,
+    unrealizedProfitLossFils: 1000,
+    profitLossFils: 1100,
+    cashAdjustmentFils: 0,
+  });
+}, 120000);
+
+it("requires a fresh confirmation after cash changes and preserves idempotent replay", async () => {
+  const userId = randomUUID();
+  await owner.user.create({
+    data: { id: userId, name: "Confirmation", email: `${userId}@example.test` },
+  });
+  const input = {
+    ...order("BUY", 1),
+    expectedCashBalanceFils: "10000000",
+    quoteToken: (await readOrderQuote(db, "DFM", "EMAAR", quoteSecret)).token,
+  };
+  const original = await execute(input, userId);
+  const before = await account(userId);
+  await expect(
+    execute({ ...input, idempotencyKey: randomUUID() }, userId),
+  ).rejects.toMatchObject({ code: "ACCOUNT_CHANGED" });
+  expect(await account(userId)).toEqual(before);
+  expect((await execute(input, userId)).trade).toEqual(original.trade);
 });
 
 beforeAll(async () => {
@@ -238,7 +405,9 @@ it("executes at server quotes and persists cash, weighted basis and immutable hi
   let saved = await account(alice);
   expect(saved.cashBalanceFils).toBe(9999700n);
   expect(saved.holdings[0].costBasisFils).toBe(300n);
-  const security = await owner.security.findFirstOrThrow();
+  const security = await owner.security.findFirstOrThrow({
+    where: { symbol: "EMAAR" },
+  });
   await owner.simulatedQuote.create({
     data: {
       securityId: security.id,

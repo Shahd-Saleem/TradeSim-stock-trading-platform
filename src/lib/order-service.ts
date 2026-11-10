@@ -87,11 +87,21 @@ export async function executeOrder(
         };
       }
       const security = await tx.security.findUnique({
+        // Expected cash is a confirmation guard only; DB cash authorizes execution.
         where: {
           exchange_symbol: { exchange: order.exchange, symbol: order.symbol },
         },
         include: { quotes: { orderBy: { snapshotAt: "desc" }, take: 1 } },
       });
+      if (
+        order.expectedCashBalanceFils !== undefined &&
+        BigInt(order.expectedCashBalanceFils) !== account.cashBalanceFils
+      )
+        throw new OrderError(
+          "ACCOUNT_CHANGED",
+          "Your virtual cash changed. Review an updated confirmation.",
+          409,
+        );
       if (!security)
         throw new OrderError(
           "UNSUPPORTED_SECURITY",

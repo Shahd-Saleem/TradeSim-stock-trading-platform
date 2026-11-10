@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { OrderPreview } from "./OrderPreview";
 import { stocks } from "@/lib/market";
@@ -16,6 +17,11 @@ const account: AccountData = {
   startingCapitalFils: 10000000,
   portfolioValueFils: 10000000,
   profitLossFils: 0,
+  valuationComplete: true,
+  realizedProfitLossFils: 0,
+  unrealizedProfitLossFils: 0,
+  returnBasisPoints: 0,
+  cashAdjustmentFils: 0,
   holdings: [
     {
       symbol: "EMAAR",
@@ -23,6 +29,14 @@ const account: AccountData = {
       quantity: 10,
       costBasisFils: 10000,
       valueFils: 10000,
+      name: "Emaar Properties",
+      averagePriceFils: 1000,
+      priceFils: 1000,
+      quoteSnapshotAt: "2026-11-09T00:00:00.000Z",
+      unrealizedProfitLossFils: 0,
+      unrealizedReturnBasisPoints: 0,
+      estimatedSaleProceedsFils: 10000,
+      estimatedSaleProfitLossFils: 0,
     },
   ],
   trades: [],
@@ -36,6 +50,12 @@ let post: ReturnType<
 const changed = vi.fn();
 const locked = vi.fn();
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute("open");
+  };
   sessionStorage.clear();
   changed.mockReset();
   locked.mockReset();
@@ -89,6 +109,23 @@ it.each(["Buy", "Sell"])(
     await setup(side);
     expect(screen.getByText("AED 10.00")).toBeTruthy(); // Server quote differs from fixture.
     fireEvent.click(screen.getByRole("button", { name: `Review ${side}` }));
+    const dialog = within(screen.getByRole("dialog"));
+    expect(
+      dialog.getByText("Number of shares").nextElementSibling?.textContent,
+    ).toBe("2");
+    expect(
+      dialog.getByText("Simulated price per share").nextElementSibling
+        ?.textContent,
+    ).toBe("AED 10.00");
+    expect(
+      dialog.getByText("Virtual cash before trade").nextElementSibling
+        ?.textContent,
+    ).toBe("AED 100,000.00");
+    expect(
+      dialog.getByText("Estimated virtual cash after trade").nextElementSibling
+        ?.textContent,
+    ).toBe(side === "Buy" ? "AED 99,980.00" : "AED 100,020.00");
+    expect(dialog.getByText(/Virtual funds only/)).toBeTruthy();
     expect(post).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: `Confirm ${side}` }));
     await waitFor(() =>
@@ -141,6 +178,7 @@ it.each([
   "INSUFFICIENT_SHARES",
   "INVALID_ORDER",
   "QUOTE_CHANGED",
+  "ACCOUNT_CHANGED",
 ])("shows a friendly %s failure and requires fresh review", async (code) => {
   await setup();
   post.mockResolvedValueOnce(
@@ -152,12 +190,27 @@ it.each([
   fireEvent.click(screen.getByRole("button", { name: "Review Buy" }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm Buy" }));
   await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
+  await waitFor(() =>
+    expect(
+      screen
+        .getByRole("button", { name: "Review Buy" })
+        .hasAttribute("disabled"),
+    ).toBe(false),
+  );
+  expect(screen.queryByRole("button", { name: /Refresh quote/ })).toBeNull();
+});
+
+it("cancels a confirmation without placing a trade and removes routine refresh controls", async () => {
+  await setup();
+  expect(screen.queryByRole("button", { name: /Refresh quote/ })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Review Buy" }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
   expect(
-    screen.getByRole("button", { name: "Review Buy" }).hasAttribute("disabled"),
-  ).toBe(true);
-  expect(
-    screen.getByRole("button", { name: "Refresh account and quote" }),
-  ).toBeTruthy();
+    screen.getByRole("textbox", { name: /Quantity/ }).hasAttribute("disabled"),
+  ).toBe(false);
+  expect(post).not.toHaveBeenCalled();
+  expect(locked).toHaveBeenLastCalledWith(false);
 });
 it("disables invalid quantities, insufficient cash and overselling", async () => {
   await setup();
@@ -225,6 +278,29 @@ it("recovers an unconfirmed order after remount and retains its key", async () =
     expect(
       screen.getByRole("button", { name: "Retry same order" }),
     ).toBeTruthy(),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Retry same order" }));
+  await waitFor(() =>
+    expect(screen.getByRole("status").textContent).toContain("confirmed"),
+  );
+  expect(post.mock.calls[1][1]!.body).toBe(original);
+});
+
+it("closes and reopens an uncertain dialog without abandoning its idempotency key", async () => {
+  await setup();
+  post.mockRejectedValueOnce(new Error("Connection interrupted"));
+  fireEvent.click(screen.getByRole("button", { name: "Review Buy" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm Buy" }));
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Retry same order" }),
+    ).toBeTruthy(),
+  );
+  const original = post.mock.calls[0][1]!.body;
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Resolve pending order" }),
   );
   fireEvent.click(screen.getByRole("button", { name: "Retry same order" }));
   await waitFor(() =>

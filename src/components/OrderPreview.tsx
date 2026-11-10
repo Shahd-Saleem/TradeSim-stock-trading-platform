@@ -8,6 +8,11 @@ import { orderSchema } from "@/lib/trading";
 import { aed } from "@/lib/money";
 import { previewOrder, type OrderSide } from "@/lib/order-preview";
 import s from "./Dashboard.module.css";
+import {
+  OrderConfirmation,
+  confirmationSchema,
+  type ConfirmationSnapshot,
+} from "./OrderConfirmation";
 
 type Quote = {
   priceFils: number;
@@ -25,7 +30,9 @@ const errors: Record<string, string> = {
   ORDER_TOO_LARGE:
     "This order exceeds the supported range. Use a smaller quantity.",
   QUOTE_CHANGED:
-    "The quote changed or expired. Refresh the quote and review your order again.",
+    "The quote changed or expired. An updated preview is loading; review and confirm it again.",
+  ACCOUNT_CHANGED:
+    "Your virtual cash changed. An updated preview is loading; review and confirm it again.",
   QUOTE_UNAVAILABLE:
     "The simulated quote is unavailable. Refresh and try again.",
 };
@@ -46,6 +53,9 @@ export function OrderPreview({
   const [loading, setLoading] = useState(true);
   const [reload, setReload] = useState(0);
   const [intent, setIntent] = useState<OrderInput | null>(null);
+  const [confirmation, setConfirmation] = useState<ConfirmationSnapshot | null>(
+    null,
+  );
   const [pending, setPending] = useState(false);
   const [uncertain, setUncertain] = useState(false);
   const [message, setMessage] = useState("");
@@ -105,8 +115,9 @@ export function OrderPreview({
           setLoadError("");
           try {
             const saved = sessionStorage.getItem(storageKey);
-            const restored = saved
-              ? orderSchema.safeParse(JSON.parse(saved))
+            const stored = saved ? JSON.parse(saved) : null;
+            const restored = stored
+              ? orderSchema.safeParse(stored.order ?? stored)
               : null;
             if (
               restored?.success &&
@@ -114,6 +125,8 @@ export function OrderPreview({
               restored.data.exchange === stock.exchange
             ) {
               setIntent(restored.data);
+              const details = confirmationSchema.safeParse(stored.confirmation);
+              setConfirmation(details.success ? details.data : null);
               setSide(restored.data.side === "BUY" ? "buy" : "sell");
               setQuantity(String(restored.data.quantity));
               setUncertain(true);
@@ -159,6 +172,7 @@ export function OrderPreview({
       /* Optional persistence. */
     }
     setIntent(null);
+    setConfirmation(null);
     setUncertain(false);
     onLockChange(false);
   }
@@ -179,6 +193,11 @@ export function OrderPreview({
       quantity: result.quantity,
       idempotencyKey: crypto.randomUUID(),
       quoteToken: quote.token,
+      expectedCashBalanceFils: String(account.cashBalanceFils),
+    });
+    setConfirmation({
+      priceFils: quote.priceFils,
+      cashBeforeFils: account.cashBalanceFils,
     });
     setMessage("");
     setSuccess(false);
@@ -188,17 +207,23 @@ export function OrderPreview({
     if (!intent || busy.current) return;
     busy.current = true;
     try {
-      sessionStorage.setItem(storageKey, JSON.stringify(intent));
+      sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({ order: intent, confirmation }),
+      );
     } catch {
       /* Optional persistence. */
     }
     setPending(true);
     setMessage("");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
     try {
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(intent),
+        signal: controller.signal,
       });
       const body = await response.json();
       if (!response.ok) {
@@ -220,7 +245,7 @@ export function OrderPreview({
         }
         release();
         setRefreshNeeded(true);
-        setQuote(null);
+        refresh();
         return;
       }
       if (!body.ok || !body.trade)
@@ -235,14 +260,13 @@ export function OrderPreview({
       setQuantity("");
       setRefreshNeeded(true);
       refresh();
-    } catch (error) {
+    } catch {
       setUncertain(true);
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Connection interrupted. Retry this same order safely.",
+        "The outcome is unconfirmed. Retry this same order safely; no duplicate trade will be executed.",
       );
     } finally {
+      clearTimeout(timeout);
       busy.current = false;
       setPending(false);
     }
@@ -364,38 +388,16 @@ export function OrderPreview({
         </Link>
       )}
       {intent ? (
-        <div
-          className={s.tradeConfirmation}
-          role="group"
-          aria-label="Order confirmation"
-        >
-          <p>
-            Confirm {intent.side.toLowerCase()} of {intent.quantity}{" "}
-            {intent.symbol} shares? This changes your virtual account.
-          </p>
-          <button
-            className={s.tradeButton}
-            type="button"
-            disabled={pending || expiredSession}
-            onClick={() => void submit()}
-          >
-            {pending
-              ? "Submitting…"
-              : uncertain
-                ? "Retry same order"
-                : `Confirm ${side === "buy" ? "Buy" : "Sell"}`}
-          </button>
-          {!uncertain && (
-            <button
-              type="button"
-              disabled={pending}
-              className={s.tradeSecondary}
-              onClick={release}
-            >
-              Back to edit
-            </button>
-          )}
-        </div>
+        <OrderConfirmation
+          order={intent}
+          snapshot={confirmation}
+          company={stock.name}
+          pending={pending}
+          uncertain={uncertain}
+          expiredSession={expiredSession}
+          onCancel={release}
+          onConfirm={() => void submit()}
+        />
       ) : (
         <button
           type="button"
@@ -412,14 +414,14 @@ export function OrderPreview({
           Review {side === "buy" ? "Buy" : "Sell"}
         </button>
       )}
-      {!locked && (
+      {!locked && loadError && (
         <button
           className={s.tradeSecondary}
           type="button"
           disabled={loading || expiredSession}
           onClick={refresh}
         >
-          {refreshNeeded ? "Refresh account and quote" : "Refresh quote"}
+          Retry loading account
         </button>
       )}
       <p className={s.previewNote}>

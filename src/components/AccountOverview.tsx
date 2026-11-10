@@ -4,6 +4,8 @@ import { stocks, type Stock } from "@/lib/market";
 import { aed, changePercent } from "@/lib/money";
 import s from "./Dashboard.module.css";
 import type { AccountData } from "@/lib/account-types";
+import { percentLabel, returnBasisPoints } from "@/lib/portfolio";
+import { ProfitSummary } from "./PortfolioHoldings";
 
 export function AccountOverview({
   onSelect,
@@ -14,7 +16,6 @@ export function AccountOverview({
 }) {
   const balance = account.cashBalanceFils;
   const value = account.portfolioValueFils;
-  const profitLoss = account.profitLossFils;
   const highlights = [...stocks].sort(
     (a, b) =>
       changePercent(b.priceFils, b.previousFils) -
@@ -30,34 +31,32 @@ export function AccountOverview({
           <div className={s.eyebrow}>YOUR ACCOUNT AT A GLANCE</div>
           <h2 id="performance-heading">Portfolio performance</h2>
           <div className={s.performanceValue}>
-            {aed(value)}
-            <span>
-              {((profitLoss / account.startingCapitalFils) * 100).toFixed(2)}%
-              return
-            </span>
+            {value === null ? "Valuation unavailable" : aed(value)}
+            <span>{percentLabel(account.returnBasisPoints)} return</span>
           </div>
-          <div
-            className={s.performancePlot}
-            role="img"
-            aria-label={`Current virtual portfolio value: ${aed(value)}. No historical performance series available.`}
-          >
-            <span>{aed(value)}</span>
-            <div className={s.flatLine} />
-            <div className={s.plotCaption}>
-              Current balance snapshot · simulated valuation
-            </div>
+          <div className={s.historyEmpty} role="status">
+            <strong>Insufficient performance history</strong>
+            <p>
+              No historical portfolio valuations have been recorded. A
+              performance line would not represent your actual returns.
+            </p>
           </div>
           <p>
-            No historical performance series yet.{" "}
-            {account
-              ? "Your account balance is saved securely between sessions."
-              : "Sign in to save your virtual account."}
+            Current equity uses saved cash and holdings at fixed simulated quote
+            snapshots. Buying or selling at the same price does not create a
+            gain. Prices are not live.
           </p>
           <div className={s.allocation}>
             <Wallet size={17} aria-hidden="true" />
             <span>Virtual cash</span>
             <strong>
-              {value === 0 ? "0.00" : ((balance / value) * 100).toFixed(2)}%
+              {value === null
+                ? "Unavailable"
+                : value === 0
+                  ? "0.00%"
+                  : percentLabel(
+                      returnBasisPoints(BigInt(balance), BigInt(value)),
+                    ).replace("+", "")}
             </strong>
           </div>
         </section>
@@ -93,6 +92,7 @@ export function AccountOverview({
           })}
         </section>
       </div>
+      <ProfitSummary account={account} />
       <section
         className={`${s.panel} ${s.highlights}`}
         aria-labelledby="highlights-heading"

@@ -1245,3 +1245,134 @@
   font-size: 13px;
   line-height: 1.6;
 }
+.profitSummary {
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 18px;
+}
+.profitSummary h2 {
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+.profitSummary strong {
+  font-size: 14px;
+  line-height: 1.7;
+}
+.profitSummary p,
+.saleEstimate p {
+  color: #a1afbf;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.profitSummary > p {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.holdingsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.holdingCard {
+  padding: 20px;
+  min-width: 0;
+}
+.holdingCard header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+.holdingCard h2 {
+  font-size: 18px;
+  line-height: 1.4;
+  margin-top: 8px;
+}
+.holdingCard dl {
+  display: grid;
+  gap: 14px;
+  margin: 20px 0;
+}
+.holdingCard dl > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 18px;
+}
+.holdingCard dt {
+  color: #9aaabd;
+  font-size: 12px;
+}
+.holdingCard dd {
+  font-size: 13px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.saleEstimate {
+  border-top: 1px solid #2a3544;
+  padding-top: 16px;
+}
+.saleEstimate h3 {
+  font-size: 14px;
+  margin: 0;
+}
+.historyEmpty {
+  padding: 28px 18px;
+  margin: 20px 0;
+  border: 1px dashed #354252;
+  border-radius: 10px;
+  color: #c4cfde;
+}
+.historyEmpty strong {
+  font-size: 14px;
+}
+.historyEmpty p {
+  font-size: 13px;
+  line-height: 1.8;
+}
+@media (max-width: 1100px) {
+  .holdingsGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .profitSummary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.confirmDialog {
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  border: 1px solid #38564b;
+  border-radius: 16px;
+  padding: 26px;
+  color: #e9edf5;
+  background: #101924;
+  box-shadow: 0 24px 80px #0008;
+}
+.confirmDialog::backdrop {
+  background: #030810c9;
+}
+.confirmDialog h2 {
+  font-size: 24px;
+  margin: 12px 0;
+}
+.confirmDialog p {
+  color: #acbacc;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.dialogActions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 22px;
+}
+.dialogActions .tradeButton {
+  flex: 1;
+  width: auto;
+}
