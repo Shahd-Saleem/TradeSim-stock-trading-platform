@@ -130,12 +130,18 @@ and execute virtual buy and sell orders.
 ### Dashboard
 Monitor your virtual balance, portfolio equity, and market highlights.
 
-![TradeSim Dashboard](images/dashboard.png)
+![TradeSim Dashboard](images/overview.png)
 
 ### Portfolio
 Track stock holdings, cost basis, valuations, and profit/loss.
 
 ![TradeSim Portfolio](images/portfolio.png)
+
+### Trading Activity
+Review completed buy and sell orders with transaction details.
+
+![TradeSim Trading Activity](images/activity.png)
+
 
 ---
 
