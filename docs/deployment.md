@@ -52,7 +52,7 @@ Before public use, verify on the canonical production hostname:
 
 Authentication uses password hashing, exact-origin POST checks, secure cookies over HTTPS, seven-day database sessions and persistent throttling. Email verification and password reset email delivery are not configured; an SMTP service is not required for the current sign-up/login flow, but recovery and verified ownership are limitations to resolve before a broader public launch. No credentials or raw database errors are returned from the protected API handlers.
 
-Daily prices remain manual: run `npm.cmd run market:advance` privately using the administrative local environment. There is no scheduler or public price-mutation endpoint. Open idle charts refresh on navigation/reload; deployment does not add polling. Do not call `market:backfill` on every build.
+Phase 4.2 adds an opt-in daily Vercel job at `/api/cron/market`. Follow [automatic market setup](phase4.2.md) to add its separate quote-only writer connection, cron secret, enabled flag and optional closure dates. No administrative credentials are required on Vercel. Until configured and deployed, updates remain manual. Open visible pages periodically refresh saved data. Do not call `market:backfill` on every build or use the future-advancing manual command for automatic production updates.
 
 Use `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd test`, `npm.cmd run test:integration` and `npm.cmd run build` before release. Integration tests create and remove isolated random schemas, not production account records. After starting a local production server, `node scripts/smoke-http.mjs http://localhost:3000` checks public routes, guest redirects and private API protection without creating users or orders.
 

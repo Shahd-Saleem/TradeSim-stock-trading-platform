@@ -1,5 +1,7 @@
 # TradeSim UAE
 
+Phase 4.2 adds a protected daily Vercel cron with safe Dubai-session catch-up and a quote-only database writer. See [automatic market updates](docs/phase4.2.md) for the required one-time role setup and Production environment variables; activation requires your deployment.
+
 For production setup, see the [Vercel deployment checklist](docs/deployment.md), including server-only environment variables, verified TLS and the separate migration workflow.
 
 Phase 4.1 adds persisted fictional daily prices. Run `npm run market:advance` to advance one simulated weekday for all eight stocks, then refresh the application. See [the daily-market guide](docs/phase4.1.md) for dates, safe retries and testing. No external feed or automatic scheduler is used.

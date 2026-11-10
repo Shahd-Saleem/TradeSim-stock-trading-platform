@@ -19,7 +19,8 @@
     "db:check": "node scripts/check-database.mjs",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "auth:setup": "node scripts/configure-local.mjs",
-    "db:runtime": "tsx scripts/setup-runtime.ts"
+    "db:runtime": "tsx scripts/setup-runtime.ts",
+    "db:market-writer": "tsx scripts/setup-market-writer.ts"
   },
   "repository": {
     "type": "git",

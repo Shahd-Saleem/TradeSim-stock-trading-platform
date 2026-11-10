@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { PrismaClient } from "@/generated/prisma/client";
+import type { PrismaClient, Prisma } from "@/generated/prisma/client";
 import { stocks } from "./market";
 import { safeInteger } from "./portfolio";
 
@@ -66,7 +66,45 @@ export function marketLockKey(schema: string) {
     throw new Error("Invalid database schema");
   return `tradesim-daily-market:${schema}`;
 }
-/** Administrative, local-only command. Never call with client-supplied credentials. */
+/** Caller must hold the market publication lock. */
+export async function latestMarket(tx: Prisma.TransactionClient) {
+  const rows = await tx.security.findMany({
+    where: { OR: stocks.map(({ exchange, symbol }) => ({ exchange, symbol })) },
+    include: { quotes: { orderBy: { snapshotAt: "desc" }, take: 1 } },
+  });
+  const securities = stocks.map((stock) => {
+    const security = rows.find(
+      (row) => row.exchange === stock.exchange && row.symbol === stock.symbol,
+    );
+    if (!security?.quotes[0])
+      throw new Error(
+        "All eight securities require an existing quote. Check database seeding.",
+      );
+    return security;
+  });
+  const date = dubaiDate(securities[0].quotes[0].snapshotAt);
+  if (securities.some((s) => dubaiDate(s.quotes[0].snapshotAt) !== date))
+    throw new Error(
+      "Latest quote dates differ. Review market data before advancing; nothing was changed.",
+    );
+  return { securities, date };
+}
+export function dailyQuoteRows(
+  securities: Awaited<ReturnType<typeof latestMarket>>["securities"],
+  day: string,
+) {
+  return securities.map((security) => {
+    const previous = security.quotes[0];
+    return {
+      securityId: security.id,
+      priceFils: dailyPrice(previous.priceFils, day, security).priceFils,
+      previousCloseFils: previous.priceFils,
+      volume: previous.volume,
+      snapshotAt: new Date(`${day}T15:00:00+04:00`),
+    };
+  });
+}
+/** Administrative manual command. Never call with client-supplied credentials. */
 export async function advanceMarket(
   db: PrismaClient,
   targetDate?: string,
@@ -80,31 +118,7 @@ export async function advanceMarket(
   return db.$transaction(
     async (tx) => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${marketLockKey(schema)}, 0))::text`;
-      const rows = await tx.security.findMany({
-        where: {
-          OR: stocks.map(({ exchange, symbol }) => ({ exchange, symbol })),
-        },
-        include: { quotes: { orderBy: { snapshotAt: "desc" }, take: 1 } },
-      });
-      const securities = stocks.map((stock) => {
-        const security = rows.find(
-          (row) =>
-            row.exchange === stock.exchange && row.symbol === stock.symbol,
-        );
-        if (!security?.quotes[0])
-          throw new Error(
-            "All eight securities require an existing quote. Check database seeding.",
-          );
-        return security;
-      });
-      const latestDates = securities.map((security) =>
-        dubaiDate(security.quotes[0].snapshotAt),
-      );
-      const latestDate = latestDates[0];
-      if (latestDates.some((day) => day !== latestDate))
-        throw new Error(
-          "Latest quote dates differ. Review market data before advancing; nothing was changed.",
-        );
+      const { securities, date: latestDate } = await latestMarket(tx);
       const day = targetDate ?? nextTradingDay(latestDate);
       if (day <= latestDate) {
         const from = new Date(`${day}T00:00:00+04:00`);
@@ -127,17 +141,7 @@ export async function advanceMarket(
         throw new Error(
           "Advance one eligible weekday at a time; dates cannot be skipped.",
         );
-      const quotes = securities.map((security) => {
-        const previous = security.quotes[0];
-        const { priceFils } = dailyPrice(previous.priceFils, day, security);
-        return {
-          securityId: security.id,
-          priceFils,
-          previousCloseFils: previous.priceFils,
-          volume: previous.volume,
-          snapshotAt: new Date(`${day}T15:00:00+04:00`),
-        };
-      });
+      const quotes = dailyQuoteRows(securities, day);
       await tx.simulatedQuote.createMany({ data: quotes });
       return { date: day, created: true, count: 8 };
     },

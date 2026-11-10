@@ -7,6 +7,8 @@ import { createPrisma } from "@/lib/prisma-client";
 import { databaseConfig } from "@/lib/database-config";
 import { advanceMarket, dailyPrice } from "@/lib/daily-market";
 import { backfillMarket } from "@/lib/market-backfill";
+import { syncMarket, MAX_CATCHUP_SESSIONS } from "@/lib/market-sync";
+import { closedDates } from "@/lib/market-calendar";
 import { readMarket } from "@/lib/market-data";
 import { readAccount } from "@/lib/account-service";
 import { executeOrder } from "@/lib/order-service";
@@ -357,4 +359,117 @@ it("backfills all eight once under concurrent retries, preserving quotes, accoun
       .at(-1)!;
     expect(preceding.priceFils).toBe(Number(anchor.previousCloseFils));
   }
+}, 120000);
+it("rolls back a failed scheduled catch-up batch completely", async () => {
+  const count = await owner.simulatedQuote.count();
+  await admin.query(
+    `CREATE FUNCTION "${schema}".fail_sync() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."snapshotAt" >= '2026-11-18' THEN RAISE EXCEPTION 'Injected failure'; END IF; RETURN NEW; END $$`,
+  );
+  await admin.query(
+    `CREATE TRIGGER fail_sync BEFORE INSERT ON "${schema}"."SimulatedQuote" FOR EACH ROW EXECUTE FUNCTION "${schema}".fail_sync()`,
+  );
+  try {
+    await expect(
+      syncMarket(owner, new Date("2026-11-20T12:00:00Z"), new Set(), schema),
+    ).rejects.toThrow();
+    expect(await owner.simulatedQuote.count()).toBe(count);
+    expect((await readMarket(runtime)).sessionDate).toBe("2026-11-16");
+  } finally {
+    await admin.query(`DROP TRIGGER fail_sync ON "${schema}"."SimulatedQuote"`);
+  }
+}, 120000);
+it("catches up missed sessions exactly once under concurrent scheduled requests, skipping closures and preserving financial records", async () => {
+  const accounts = await owner.virtualAccount.findMany();
+  const holdings = await owner.holding.findMany();
+  const trades = await owner.trade.findMany();
+  const before = await owner.simulatedQuote.findMany({
+    orderBy: { id: "asc" },
+  });
+  const closures = closedDates("2026-11-19,2026-11-20");
+  const now = new Date("2026-11-23T12:00:00Z");
+  await admin.query(
+    `GRANT INSERT ON "${schema}"."SimulatedQuote" TO tradesim_runtime`,
+  );
+  try {
+    const results = await Promise.all([
+      syncMarket(runtime, now, closures, schema),
+      syncMarket(runtime, now, closures, schema),
+    ]);
+    expect(results.map((r) => r.sessionsPublished).sort()).toEqual([0, 3]);
+    expect(
+      results.every(
+        (r) => r.latestSession === "2026-11-23" && !r.moreSessionsPending,
+      ),
+    ).toBe(true);
+    expect(await owner.simulatedQuote.count()).toBe(before.length + 24);
+    expect(
+      await owner.simulatedQuote.findMany({
+        where: { id: { in: before.map((q) => q.id) } },
+        orderBy: { id: "asc" },
+      }),
+    ).toEqual(before);
+    expect(await owner.virtualAccount.findMany()).toEqual(accounts);
+    expect(await owner.holding.findMany()).toEqual(holdings);
+    expect(await owner.trade.findMany()).toEqual(trades);
+    const market = await readMarket(runtime);
+    for (const stock of market.stocks) {
+      const points = stock.history.filter((p) => p.time > "2026-11-16");
+      expect(points.map((p) => p.time)).toEqual([
+        "2026-11-17",
+        "2026-11-18",
+        "2026-11-23",
+      ]);
+      let price = BigInt(
+        stock.history.find((p) => p.time === "2026-11-16")!.priceFils,
+      );
+      for (const point of points) {
+        price = dailyPrice(price, point.time, stock).priceFils;
+        expect(point.priceFils).toBe(Number(price));
+      }
+    }
+    const account = await readAccount(runtime, userId);
+    expect(account.portfolioValueFils).toBe(
+      account.cashBalanceFils +
+        account.holdings.reduce((sum, h) => sum + h.valueFils!, 0),
+    );
+    const quote = await readOrderQuote(
+      runtime,
+      held.exchange,
+      held.symbol,
+      secret,
+    );
+    expect(quote.priceFils).toBe(
+      market.stocks.find((s) => s.symbol === held.symbol)!.priceFils,
+    );
+    expect(
+      (await syncMarket(runtime, now, closures, schema)).quotesPublished,
+    ).toBe(0);
+  } finally {
+    await admin.query(
+      `REVOKE INSERT ON "${schema}"."SimulatedQuote" FROM tradesim_runtime`,
+    );
+  }
+}, 120000);
+it("never publishes future sessions and bounds long catch-ups for the function timeout", async () => {
+  const count = await owner.simulatedQuote.count();
+  const ahead = await syncMarket(
+    owner,
+    new Date("2026-11-20T12:00:00Z"),
+    new Set(),
+    schema,
+  );
+  expect(ahead.aheadOfClock).toBe(true);
+  expect(ahead.quotesPublished).toBe(0);
+  expect(await owner.simulatedQuote.count()).toBe(count);
+  const result = await syncMarket(
+    owner,
+    new Date("2027-04-01T12:00:00Z"),
+    new Set(),
+    schema,
+  );
+  expect(result.sessionsPublished).toBe(MAX_CATCHUP_SESSIONS);
+  expect(result.moreSessionsPending).toBe(true);
+  expect(await owner.simulatedQuote.count()).toBe(
+    count + MAX_CATCHUP_SESSIONS * 8,
+  );
 }, 120000);

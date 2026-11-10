@@ -15,6 +15,7 @@ import type { Stock } from "@/lib/market";
 import type { MarketData } from "@/lib/market-data";
 import { aed, changePercent } from "@/lib/money";
 import { PriceChart } from "./PriceChart";
+import { MarketRefresh } from "./MarketRefresh";
 import type { AccountData } from "@/lib/account-types";
 import { Profile } from "./Profile";
 import { PortfolioHoldings } from "./PortfolioHoldings";
@@ -180,6 +181,7 @@ export function Dashboard({
           </div>
         </header>
         <main id="workspace-content">
+          <MarketRefresh />
           <div className={s.titleRow}>
             <div>
               <div className={s.eyebrow}>YOUR NEXT CHAPTER STARTS HERE</div>
