@@ -11,6 +11,14 @@ for (const path of ["/", "/markets", "/login", "/register"]) {
 const markets = await fetch(`${base}/markets`);
 const marketHtml = await markets.text();
 checks.push({
+  path: "/markets (production security headers)",
+  passed:
+    markets.headers.get("X-Content-Type-Options") === "nosniff" &&
+    markets.headers.get("X-Frame-Options") === "DENY" &&
+    markets.headers.get("Referrer-Policy") ===
+      "strict-origin-when-cross-origin",
+});
+checks.push({
   path: "/markets (no guest account data)",
   passed:
     !marketHtml.includes("Available balance") &&

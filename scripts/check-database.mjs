@@ -13,9 +13,9 @@ try {
   const url = new URL(connectionString);
   const certificatePath =
     process.env.DATABASE_CA_CERT_PATH || url.searchParams.get("sslrootcert");
-  const ca = certificatePath
-    ? readFileSync(certificatePath, "utf8")
-    : undefined;
+  const ca =
+    process.env.DATABASE_CA_CERT?.replace(/\\n/g, "\n") ||
+    (certificatePath ? readFileSync(certificatePath, "utf8") : undefined);
   // pg URL SSL parameters override explicit options. Apply a single verified TLS
   // configuration instead, including hostname verification and the supplied CA.
   for (const key of [

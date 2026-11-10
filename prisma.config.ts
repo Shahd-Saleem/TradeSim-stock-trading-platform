@@ -6,8 +6,9 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: { path: "prisma/migrations", seed: "tsx scripts/seed.ts" },
   datasource: {
-    url:
-      process.env.DATABASE_URL || process.env.DIRECT_URL
+    url: process.argv.includes("generate")
+      ? "postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=tradesim"
+      : process.env.DATABASE_URL || process.env.DIRECT_URL
         ? migrationUrl()
         : "postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=tradesim",
   },

@@ -1,5 +1,7 @@
 # TradeSim UAE
 
+For production setup, see the [Vercel deployment checklist](docs/deployment.md), including server-only environment variables, verified TLS and the separate migration workflow.
+
 Phase 4.1 adds persisted fictional daily prices. Run `npm run market:advance` to advance one simulated weekday for all eight stocks, then refresh the application. See [the daily-market guide](docs/phase4.1.md) for dates, safe retries and testing. No external feed or automatic scheduler is used.
 
 Run `npm run market:backfill` once to store approximately six months of fictional stock history for the 1M/3M/6M charts. Published prices and all financial records remain unchanged; this does not generate portfolio performance history.

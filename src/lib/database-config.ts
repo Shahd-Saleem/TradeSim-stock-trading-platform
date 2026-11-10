@@ -9,9 +9,11 @@ export function databaseConfig(
   const url = new URL(connectionString);
   const certificatePath =
     process.env.DATABASE_CA_CERT_PATH || url.searchParams.get("sslrootcert");
-  const ca = certificatePath
-    ? readFileSync(resolve(certificatePath), "utf8")
-    : undefined;
+  const ca =
+    process.env.DATABASE_CA_CERT?.replace(/\\n/g, "\n") ||
+    (certificatePath
+      ? readFileSync(resolve(certificatePath), "utf8")
+      : undefined);
   for (const key of [
     "sslmode",
     "sslrootcert",
