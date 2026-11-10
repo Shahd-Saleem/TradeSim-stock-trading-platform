@@ -1,70 +1,142 @@
 # TradeSim UAE
 
-Phase 4.2 adds a protected daily Vercel cron with safe Dubai-session catch-up and a quote-only database writer. See [automatic market updates](docs/phase4.2.md) for the required one-time role setup and Production environment variables; activation requires your deployment.
+A full-stack paper-trading platform inspired by the Dubai Financial Market (DFM) and Abu Dhabi Securities Exchange (ADX). Explore fictional stock markets, practice buying and selling shares with virtual money, and track your portfolio in a responsive dashboard.
 
-For production setup, see the [Vercel deployment checklist](docs/deployment.md), including server-only environment variables, verified TLS and the separate migration workflow.
+**[Live Demo](https://trade-sim-stock-trading-platform.vercel.app/)** · **[Source Code](https://github.com/Shahd-Saleem/TradeSim-stock-trading-platform)**
 
-Phase 4.1 adds persisted fictional daily prices. Run `npm run market:advance` to advance one simulated weekday for all eight stocks, then refresh the application. See [the daily-market guide](docs/phase4.1.md) for dates, safe retries and testing. No external feed or automatic scheduler is used.
+> **Simulation only:** All prices, price history, and trading volumes are fictional. TradeSim does not connect to a brokerage, execute real trades, or use live exchange data.
 
-Run `npm run market:backfill` once to store approximately six months of fictional stock history for the 1M/3M/6M charts. Published prices and all financial records remain unchanged; this does not generate portfolio performance history.
+## Features
 
-Feature 3.4 adds exact portfolio analytics, realized/unrealized returns, responsive holdings, honest performance-history messaging and detailed order confirmation. See [the portfolio analytics guide](docs/phase3.4.md), [trading interface](docs/phase3.3.md) and [backend API](docs/phase3.2.md). Earlier phase descriptions below describe their original scope.
+- **Virtual accounts:** Register or sign in and start with **AED 100,000** in virtual cash.
+- **Markets:** Browse eight illustrative DFM/ADX stocks, search and filter listings, and explore interactive 1M, 3M, and 6M price charts.
+- **Trading:** Buy and sell whole shares with order confirmation, balance and holdings checks, and persistent transaction records.
+- **Dashboard:** See account equity, available cash, total profit/loss, open positions, and market highlights.
+- **Portfolio:** Track share quantities, average purchase prices, cost basis, current valuations, and realized/unrealized profit and loss.
+- **Activity:** Review your latest 100 completed trades.
+- **Market updates:** Publish new simulated daily prices through a protected Vercel Cron Job, with catch-up and duplicate prevention. Open pages refresh quotes periodically.
 
-A responsive UAE paper-trading application built with Next.js App Router, React, TypeScript, CSS Modules, Prisma, PostgreSQL, Better Auth, Zod and TradingView Lightweight Charts. **Phase 2:** persistent virtual accounts and email/password authentication. All quotes, changes and volumes remain deterministic simulated fixtures, not live exchange data. Company names and symbols are illustrative identifiers; listing status is not verified.
+## Application Pages
 
-## Run locally
+| Page | What it includes |
+| --- | --- |
+| **Home** (`/`) | Public introduction and links to explore markets or create an account. |
+| **Markets** (`/markets`) | Stock search, exchange filters, price charts, and buy/sell controls for signed-in users. |
+| **Dashboard** (`/dashboard`) | Personal account overview, cash, equity, returns, and market highlights. |
+| **Portfolio** (`/portfolio`) | Holdings, cost basis, valuations, and profit/loss details. |
+| **Activity** (`/activity`) | Recent completed buy and sell orders. |
+| **Login / Register** | Email/password authentication and account creation. |
 
-Phase 2.5 adds a public landing page at `/`, public charts at `/markets`, and protected `/dashboard`, `/portfolio`, and `/activity` pages. Guests see no personal balance. See [the navigation and authentication UX guide](docs/phase2.5.md).
+## Tech Stack
 
-Requires Node.js 22.13+ and npm.
+| Area | Technologies |
+| --- | --- |
+| Frontend | Next.js 16, React 19, TypeScript, CSS Modules |
+| Backend | Next.js App Router and server-side API routes |
+| Database | Supabase PostgreSQL, Prisma ORM 7 |
+| Authentication | Better Auth |
+| Charts and UI | TradingView Lightweight Charts, Lucide React |
+| Validation | Zod |
+| Testing | Vitest, Testing Library, PostgreSQL integration tests |
+| Deployment | Vercel, Vercel Cron Jobs |
 
-Complete the [Phase 2 environment and database setup](docs/phase2.md) before starting the application. That guide documents credentials, verified TLS, migrations, runtime-role separation and integration tests. The current workspace has already been migrated and seeded.
+## How It Works
 
-```sh
+Each new account receives AED 100,000 in virtual funds. When a user places an order, the server verifies their session, reads the latest stored fictional quote, and checks available cash or shares. Trades execute inside PostgreSQL transactions with locking and idempotency safeguards to prevent inconsistent balances and duplicate orders.
+
+Money is calculated in integer **fils** rather than floating-point AED amounts. Portfolio equity combines cash and current holdings value, while realized and unrealized profit/loss are calculated from trade history, remaining cost basis, and current simulated prices.
+
+Fictional daily quotes are stored in PostgreSQL. A protected scheduled endpoint can publish the next eligible market session's prices; it skips weekends and configured closures. Historical stock charts show simulated **stock-price history**, not historical portfolio performance.
+
+## Run Locally
+
+### Prerequisites
+
+- **Node.js 24.x** and npm
+- A **Supabase PostgreSQL** project
+- Database credentials with sufficient permissions for the initial setup
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/Shahd-Saleem/TradeSim-stock-trading-platform.git
+cd TradeSim-stock-trading-platform
 npm ci
+```
+
+### 2. Configure the environment
+
+Copy `.env.example` to `.env.local` and fill in your own values. The main settings include:
+
+- `DATABASE_URL` — application database connection
+- `DIRECT_URL` — administrative database connection for setup/migrations
+- `BETTER_AUTH_SECRET` — authentication secret
+- `BETTER_AUTH_URL` — local application origin, such as `http://localhost:3000`
+- `DATABASE_CA_CERT_PATH` or `DATABASE_CA_CERT` — certificate configuration for verified TLS
+
+Follow **[Database and Authentication Setup](docs/phase2.md)** for the required connection roles, TLS configuration, and credential setup. Never commit `.env.local` or real secrets.
+
+### 3. Initialize the database
+
+```bash
+npm run auth:setup
+npm run db:check
+npm run db:migrate
+npm run db:seed
+npm run db:runtime
+```
+
+Optional: Populate approximately six months of simulated stock-price history for the charts:
+
+```bash
+npm run market:backfill
+```
+
+### 4. Start the development server
+
+```bash
 npm run dev
 ```
 
-Open http://localhost:3000. If PowerShell blocks npm.ps1, use `npm.cmd` instead of `npm`.
+Visit **http://localhost:3000**. On Windows PowerShell, use `npm.cmd` if `npm.ps1` execution is blocked.
 
-```sh
+> Note: Automatic daily price updates require additional configuration. See the **[Automatic Market Updates](docs/phase4.2.md)**. You can run and test the application locally without enabling automatic updates.
+
+## Testing
+
+```bash
 npm run typecheck
 npm run lint
 npm test
 npm run build
 ```
 
-## Phase 1
+The project also includes PostgreSQL integration tests for authentication, account isolation, order execution, concurrency, idempotency, and market publishing. Running them requires a separately configured test database; see the repository's setup documentation before using `npm run test:integration`.
 
-- Responsive dark dashboard with named, consistently sized Lucide icons for Overview, Markets, Portfolio and Activity navigation.
-- Overview focuses on account KPIs, a cash-only performance summary, a compact sample watchlist and simulated market highlights. It does not invent historical returns or holdings. Watchlist and highlight selections open the stock in Markets.
-- Markets provides a dedicated searchable table of eight illustrative DFM/ADX stocks, exchange filters, selected-stock details and an interactive chart with 1M, 3M and 6M windows. Hover, zoom and pan are supported.
-- Buy/Sell order preview with quantity input, exact integer-fils AED estimates, available virtual balance and zero shares held. Invalid quantities, unsafe amounts, insufficient funds and insufficient holdings produce accessible feedback. The estimate excludes fees. Submission is always disabled and labeled **Trading available in Phase 3**; there is no order endpoint or account mutation.
-- New accounts receive AED 100,000 virtual starting capital with zero holdings. Signed-in balances persist; the guest preview remains nonpersistent.
-- Explicit simulation labels and a fixed snapshot date of 9 November 2026. Trading controls are disabled.
-- No external market calls. PostgreSQL and authentication provide saved accounts; the guest interface remains available.
+## Deployment
 
-## Architecture
+Deployed using **Vercel** with **Supabase PostgreSQL**. See the **[Deployment Guide](docs/deployment.md)** for production setup and **[Automatic Market Updates](docs/phase4.2.md)** for the daily scheduler and restricted market-writer role.
 
-- `src/app`: App Router server entry point, metadata and global reset.
-- `src/components/Dashboard.tsx`: client navigation, filters and stock selection; `Dashboard.module.css` provides responsive styling.
-- `src/components/AccountOverview.tsx`: account performance, sample watchlist and market highlights.
-- `src/components/OrderPreview.tsx`: interactive Buy/Sell estimation only. Values recalculate on stock, side or quantity changes.
-- `src/components/PriceChart.tsx`: isolated chart lifecycle, resizing and cleanup. Numeric AED values are used only for presentation/chart coordinates. Charts are attributed to [TradingView](https://www.tradingview.com/) per the [Lightweight Charts documentation](https://tradingview.github.io/lightweight-charts/docs).
-- `src/lib/market.ts`: Zod-validated fixtures and seeded UTC history, independent of runtime clocks and randomness. Each chart ends at its quoted price.
-- `src/lib/money.ts`: integer-fils arithmetic with safe-integer guards. AED 100,000 is 10,000,000 fils. Position valuation rejects negative or fractional inputs and unsafe products.
-- `src/lib/market.test.ts`: tests for financial primitives and deterministic history.
-- `src/lib/order-preview.ts` and its tests: pure quantity parsing, safe estimates, balance and holdings feedback. These are preview checks, not server-side execution validation.
-- `src/components/Dashboard.test.tsx`: jsdom interaction tests for navigation, distinct views, filters, empty search results, stock/chart selection and disabled order previews. The chart renderer is mocked; these tests do not assert canvas rendering or visual layout.
+---
 
-No holdings or transactions are fabricated. Portfolio analytics show the initial cash-only state.
+## Screenshots
 
-## Later phases — pending review
+### Markets & Trading
+Explore simulated UAE stocks, view historical price charts,
+and execute virtual buy and sell orders.
 
-Phase 2 adds PostgreSQL, Prisma, authentication and persistent virtual accounts; see [the Phase 2 implementation guide](docs/phase2.md). Phase 3 order execution remains deferred. Orders will need idempotency keys, concurrency protection and atomic balance/position updates to prevent duplicate trades, overspending and overselling. There is currently no trade execution endpoint.
+![TradeSim Markets](images/markets.png)
 
-The original repository contained only a README and MIT license.
+### Dashboard
+Monitor your virtual balance, portfolio equity, and market highlights.
 
-## Dependency review
+![TradeSim Dashboard](images/dashboard.png)
 
-At implementation time, npm audit reported eight moderate advisories in the development-only ESLint dependency chain, originating from a minimatch denial-of-service advisory (GHSA-g3hv-75wg-m249). npm proposes downgrading eslint-config-next across a major version; that change has not been applied. Review an upstream compatible patch before upgrading tooling. The initial runtime-only install reported no advisories.
+### Portfolio
+Track stock holdings, cost basis, valuations, and profit/loss.
+
+![TradeSim Portfolio](images/portfolio.png)
+
+---
+
+Built as a full-stack software engineering portfolio project.
