@@ -5,9 +5,27 @@ import {
   positionDescription,
   returnBasisPoints,
   roundedRatio,
+  returnPercentLabel,
 } from "./portfolio";
 import { calculateOrder } from "./trading";
 describe("exact portfolio accounting", () => {
+  it.each([
+    [304, 10000000, "+0.0030%"],
+    [-304, 10000000, "-0.0030%"],
+    [0, 10000000, "0.00%"],
+    [1, 10000000, "+<0.0001%"],
+    [-1, 10000000, "-<0.0001%"],
+    [1000, 10000000, "+0.01%"],
+    [125500, 10000000, "+1.26%"],
+    [-125500, 10000000, "-1.26%"],
+    [null, 10000000, "Unavailable"],
+    [1, 0, "Unavailable"],
+  ])(
+    "formats exact return %s / %s without misleading zeroes",
+    (profit, basis, label) => {
+      expect(returnPercentLabel(profit, basis)).toBe(label);
+    },
+  );
   it("does not treat an acquisition as a gain or double-count invested cash", () => {
     const buy = calculateOrder("BUY", 10n, 100n, 10000n, 0n, 0n);
     const result = portfolioAnalytics(buy.cash, 10000n, buy.total, 0n, [

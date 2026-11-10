@@ -8,3 +8,30 @@
     height: 280px;
   }
 }
+.empty {
+  display: grid;
+  place-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  color: #a1afbf;
+  line-height: 1.8;
+  font-size: 13px;
+  text-align: center;
+  border: 1px dashed #354252;
+  border-radius: 10px;
+}
+.historyNote {
+  margin: 12px 0 0;
+  color: #a1afbf;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.historyNote strong {
+  color: #d9e2ef;
+  font-weight: 500;
+}
+.historyNote span {
+  display: block;
+  margin-top: 4px;
+}

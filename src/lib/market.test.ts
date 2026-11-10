@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { aed, changePercent, positionValue, STARTING_CAPITAL } from "./money";
-import { history, stocks } from "./market";
+import { stocks, stockSchema } from "./market";
 describe("financial primitives", () => {
   it("calculates share values exactly in fils", () => {
     expect(positionValue(29, 3)).toBe(87);
@@ -21,21 +21,12 @@ describe("financial primitives", () => {
   });
 });
 describe("simulated market", () => {
-  it("keeps dates ordered and prices positive across every stock", () => {
-    for (const stock of stocks) {
-      const points = history(stock, 180);
-      expect(points.every((point) => point.value > 0)).toBe(true);
-      expect(points.map((point) => point.time)).toEqual(
-        points.map((point) => point.time).sort(),
-      );
-      expect(history(stock, 30)).toEqual(points.slice(-30));
-    }
-  });
-  it("is deterministic and ends at the quoted price", () => {
-    const data = history(stocks[0], 90);
-    expect(data).toEqual(history(stocks[0], 90));
-    expect(data).toHaveLength(90);
-    expect(data.at(-1)?.value).toBe(stocks[0].priceFils / 100);
-    expect(new Set(data.map((p) => p.time)).size).toBe(90);
+  it("keeps eight validated bootstrap securities; displayed history comes from PostgreSQL", () => {
+    expect(stocks).toHaveLength(8);
+    for (const stock of stocks)
+      expect(stockSchema.safeParse(stock).success).toBe(true);
+    expect(
+      new Set(stocks.map((stock) => `${stock.exchange}:${stock.symbol}`)).size,
+    ).toBe(8);
   });
 });

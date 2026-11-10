@@ -24,7 +24,7 @@ try {
             securityId_snapshotAt: { securityId: security.id, snapshotAt },
           },
           create: { securityId: security.id, snapshotAt, ...quote },
-          update: quote,
+          update: {},
         });
       }
     },

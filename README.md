@@ -1,5 +1,9 @@
 # TradeSim UAE
 
+Phase 4.1 adds persisted fictional daily prices. Run `npm run market:advance` to advance one simulated weekday for all eight stocks, then refresh the application. See [the daily-market guide](docs/phase4.1.md) for dates, safe retries and testing. No external feed or automatic scheduler is used.
+
+Run `npm run market:backfill` once to store approximately six months of fictional stock history for the 1M/3M/6M charts. Published prices and all financial records remain unchanged; this does not generate portfolio performance history.
+
 Feature 3.4 adds exact portfolio analytics, realized/unrealized returns, responsive holdings, honest performance-history messaging and detailed order confirmation. See [the portfolio analytics guide](docs/phase3.4.md), [trading interface](docs/phase3.3.md) and [backend API](docs/phase3.2.md). Earlier phase descriptions below describe their original scope.
 
 A responsive UAE paper-trading application built with Next.js App Router, React, TypeScript, CSS Modules, Prisma, PostgreSQL, Better Auth, Zod and TradingView Lightweight Charts. **Phase 2:** persistent virtual accounts and email/password authentication. All quotes, changes and volumes remain deterministic simulated fixtures, not live exchange data. Company names and symbols are illustrative identifiers; listing status is not verified.

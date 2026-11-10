@@ -93,24 +93,3 @@ export const stocks: Stock[] = z.array(stockSchema).parse([
     color: "#d2b87b",
   },
 ]);
-/** Fixed seed and UTC dates ensure identical server/client and repeatable chart data. */
-export function history(stock: Stock, days: number) {
-  let seed = [...stock.symbol].reduce((sum, c) => sum + c.charCodeAt(0), 0);
-  const end = Date.UTC(2026, 10, 9);
-  const full = Array.from({ length: 180 }, (_, i) => {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    const progress = i / 179;
-    const value = Math.round(
-      stock.priceFils *
-        (0.88 +
-          progress * 0.12 +
-          Math.sin(i / 9) * 0.014 +
-          (seed / 4294967296 - 0.5) * 0.016),
-    );
-    return {
-      time: new Date(end - (179 - i) * 86400000).toISOString().slice(0, 10),
-      value: (i === 179 ? stock.priceFils : value) / 100,
-    };
-  });
-  return full.slice(-days);
-}

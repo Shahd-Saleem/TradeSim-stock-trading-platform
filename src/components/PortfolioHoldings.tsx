@@ -1,20 +1,22 @@
 import type { AccountData } from "@/lib/account-types";
 import { aed } from "@/lib/money";
-import { percentLabel } from "@/lib/portfolio";
+import { returnPercentLabel } from "@/lib/portfolio";
 import s from "./Dashboard.module.css";
 export function ProfitLoss({
   value,
-  basisPoints,
+  basisFils,
 }: {
   value: number | null;
-  basisPoints?: number | null;
+  basisFils?: number;
 }) {
   if (value === null) return <span>Unavailable · missing quote</span>;
   return (
     <span className={value > 0 ? s.positive : value < 0 ? s.negative : s.muted}>
       {value > 0 ? "Gain +" : value < 0 ? "Loss " : "Break-even "}
       {aed(value)}
-      {basisPoints !== undefined && <> · {percentLabel(basisPoints)}</>}
+      {basisFils !== undefined && (
+        <> · {returnPercentLabel(value, basisFils)}</>
+      )}
     </span>
   );
 }
@@ -43,7 +45,7 @@ export function ProfitSummary({ account }: { account: AccountData }) {
         <strong>
           <ProfitLoss
             value={account.profitLossFils}
-            basisPoints={account.returnBasisPoints}
+            basisFils={account.startingCapitalFils}
           />
         </strong>
         <p>Realized plus unrealized. Virtual funds; no fees.</p>
@@ -117,7 +119,7 @@ export function PortfolioHoldings({ account }: { account: AccountData }) {
                   <dd>
                     <ProfitLoss
                       value={holding.unrealizedProfitLossFils}
-                      basisPoints={holding.unrealizedReturnBasisPoints}
+                      basisFils={holding.costBasisFils}
                     />
                   </dd>
                 </div>
@@ -150,7 +152,7 @@ export function PortfolioHoldings({ account }: { account: AccountData }) {
               </div>
               <p className={s.inputHelp}>
                 {holding.quoteSnapshotAt
-                  ? `Fixed simulated snapshot · ${holding.quoteSnapshotAt.slice(0, 10)}. Not live prices.`
+                  ? `Stored simulated session · ${holding.quoteSnapshotAt.slice(0, 10)}. Not live prices.`
                   : "A simulated quote is required to value this holding."}
               </p>
             </article>

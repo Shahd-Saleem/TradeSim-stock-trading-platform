@@ -1,5 +1,6 @@
 import type { PrismaClient, Trade } from "@/generated/prisma/client";
 import { verifyOrderQuote } from "./order-quote";
+import { marketLockKey } from "./daily-market";
 import {
   calculateOrder,
   OrderError,
@@ -42,6 +43,8 @@ export async function executeOrder(
   const order = parsed.data;
   return db.$transaction(
     async (tx) => {
+      // Publication and execution share a lock order: market first, account second.
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock_shared(hashtextextended(${marketLockKey(schema)}, 0))::text`;
       // Parameterized identity; schema is a strictly validated internal identifier.
       // READ COMMITTED + one account mutex serializes all writes for this account.
       const accounts = await tx.$queryRawUnsafe<

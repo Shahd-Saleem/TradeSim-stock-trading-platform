@@ -1,18 +1,24 @@
 "use client";
 import { ArrowUpRight, Wallet } from "lucide-react";
-import { stocks, type Stock } from "@/lib/market";
+import type { Stock } from "@/lib/market";
 import { aed, changePercent } from "@/lib/money";
 import s from "./Dashboard.module.css";
 import type { AccountData } from "@/lib/account-types";
-import { percentLabel, returnBasisPoints } from "@/lib/portfolio";
+import {
+  percentLabel,
+  returnBasisPoints,
+  returnPercentLabel,
+} from "@/lib/portfolio";
 import { ProfitSummary } from "./PortfolioHoldings";
 
 export function AccountOverview({
   onSelect,
   account,
+  stocks,
 }: {
   onSelect: (stock: Stock) => void;
   account: AccountData;
+  stocks: Stock[];
 }) {
   const balance = account.cashBalanceFils;
   const value = account.portfolioValueFils;
@@ -32,7 +38,13 @@ export function AccountOverview({
           <h2 id="performance-heading">Portfolio performance</h2>
           <div className={s.performanceValue}>
             {value === null ? "Valuation unavailable" : aed(value)}
-            <span>{percentLabel(account.returnBasisPoints)} return</span>
+            <span>
+              {returnPercentLabel(
+                account.profitLossFils,
+                account.startingCapitalFils,
+              )}{" "}
+              return
+            </span>
           </div>
           <div className={s.historyEmpty} role="status">
             <strong>Insufficient performance history</strong>
@@ -42,9 +54,9 @@ export function AccountOverview({
             </p>
           </div>
           <p>
-            Current equity uses saved cash and holdings at fixed simulated quote
-            snapshots. Buying or selling at the same price does not create a
-            gain. Prices are not live.
+            Current equity uses saved cash and holdings at persisted daily
+            simulated quotes. Buying or selling at the same price does not
+            create a gain. Prices are not live.
           </p>
           <div className={s.allocation}>
             <Wallet size={17} aria-hidden="true" />

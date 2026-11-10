@@ -8,7 +8,17 @@ import {
   within,
   waitFor,
 } from "@testing-library/react";
-import { Dashboard } from "./Dashboard";
+import { Dashboard as WorkspaceDashboard } from "./Dashboard";
+import { marketFixture } from "../../tests/fixtures/market";
+import type { MarketData } from "@/lib/market-data";
+function Dashboard({
+  market = marketFixture,
+  ...props
+}: Omit<Parameters<typeof WorkspaceDashboard>[0], "market"> & {
+  market?: MarketData;
+}) {
+  return <WorkspaceDashboard market={market} {...props} />;
+}
 import type { AccountData } from "@/lib/account-types";
 import { stocks } from "@/lib/market";
 import { holdingAnalytics } from "@/lib/portfolio";
@@ -74,6 +84,57 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("public and private workspace", () => {
+  it.each([304, -304])(
+    "shows small signed returns consistently for P/L of %s fils",
+    (profit) => {
+      const data = {
+        ...account,
+        profitLossFils: profit,
+        returnBasisPoints: 0,
+        portfolioValueFils: account.startingCapitalFils + profit,
+      };
+      const expected = profit > 0 ? "+0.0030%" : "-0.0030%";
+      const { rerender } = render(
+      <Dashboard initialView="Overview" account={data} />,
+      );
+      expect(screen.getByText(`${expected} all time`)).toBeTruthy();
+      expect(screen.getByText(`${expected} return`)).toBeTruthy();
+    rerender(<Dashboard initialView="Portfolio" account={data} />);
+      expect(
+        screen.getAllByText(
+          new RegExp(expected.replace(/[+.*?^${}()|[\]\\]/g, "\\$&")),
+        ).length,
+      ).toBeGreaterThan(0);
+    },
+  );
+  it("uses persisted market prices, dates and refreshed stock data instead of bootstrap fixtures", () => {
+    const market = {
+      ...marketFixture,
+      sessionDate: "2026-11-10",
+      stocks: marketFixture.stocks.map((stock, index) =>
+        index === 0
+          ? { ...stock, priceFils: 1500, sessionDate: "2026-11-10" }
+          : stock,
+      ),
+    };
+    const view = render(<Dashboard initialView="Markets" market={market} />);
+    expect(screen.getByText("2026-11-10")).toBeTruthy();
+    expect(screen.getAllByText("AED 15.00").length).toBeGreaterThan(0);
+    expect(screen.queryByText("AED 13.45")).toBeNull();
+    view.rerender(
+      <Dashboard
+        initialView="Markets"
+        market={{
+          ...market,
+          stocks: market.stocks.map((stock, index) =>
+            index === 0 ? { ...stock, priceFils: 1600 } : stock,
+          ),
+        }}
+      />,
+    );
+    expect(screen.getAllByText("AED 16.00").length).toBeGreaterThan(0);
+    expect(screen.queryByText("AED 15.00")).toBeNull();
+  });
   it("shows guest charts without personal balances, private views or order entry", () => {
     const { container } = render(<Dashboard initialView="Markets" />);
     expect(screen.getByRole("table")).toBeTruthy();

@@ -79,6 +79,24 @@ export function percentLabel(basisPoints: number | null) {
   if (basisPoints === null) return "Unavailable";
   return `${basisPoints > 0 ? "+" : ""}${(basisPoints / 100).toFixed(2)}%`;
 }
+/** Presentation only: retain small returns that whole basis points cannot show. */
+export function returnPercentLabel(
+  profitFils: number | null,
+  basisFils: number,
+) {
+  if (profitFils === null || basisFils <= 0) return "Unavailable";
+  if (!Number.isSafeInteger(profitFils) || !Number.isSafeInteger(basisFils))
+    throw new RangeError("Expected integer fils");
+  if (profitFils === 0) return "0.00%";
+  const magnitude = BigInt(profitFils < 0 ? -profitFils : profitFils);
+  const basis = BigInt(basisFils);
+  const sign = profitFils > 0 ? "+" : "-";
+  const digits = magnitude * 10000n < basis ? 4 : 2;
+  const scale = 10n ** BigInt(digits);
+  const rounded = roundedRatio(magnitude * 100n * scale, basis);
+  if (rounded === 0n) return `${sign}<0.0001%`;
+  return `${sign}${rounded / scale}.${(rounded % scale).toString().padStart(digits, "0")}%`;
+}
 export function positionDescription(count: number) {
   return count === 0
     ? "No open positions yet"

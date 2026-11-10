@@ -7,19 +7,26 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { aed, changePercent } from "@/lib/money";
-import { history, stocks } from "@/lib/market";
+import type { MarketData } from "@/lib/market-data";
 import s from "./Landing.module.css";
 
-export function Landing({ authenticated }: { authenticated: boolean }) {
+export function Landing({
+  authenticated,
+  market,
+}: {
+  authenticated: boolean;
+  market: MarketData;
+}) {
+  const stocks = market.stocks;
   const start = authenticated ? "/dashboard" : "/register";
   const stock = stocks[0];
-  const prices = history(stock, 90).map((point) => point.value);
+  const prices = stock.history.slice(-90).map((point) => point.priceFils / 100);
   const min = Math.min(...prices),
     range = Math.max(...prices) - min || 1;
   const line = prices
     .map(
       (price, index) =>
-        `${index ? "L" : "M"}${(index * 500) / 89},${145 - ((price - min) * 115) / range}`,
+        `${index ? "L" : "M"}${(index * 500) / Math.max(1, prices.length - 1)},${145 - ((price - min) * 115) / range}`,
     )
     .join(" ");
   return (
@@ -99,8 +106,16 @@ export function Landing({ authenticated }: { authenticated: boolean }) {
               </div>
               <div>
                 <strong>{aed(stock.priceFils)}</strong>
-                <span className={s.gain}>
-                  +
+                <span
+                  className={
+                    changePercent(stock.priceFils, stock.previousFils) < 0
+                      ? s.loss
+                      : s.gain
+                  }
+                >
+                  {changePercent(stock.priceFils, stock.previousFils) > 0
+                    ? "+"
+                    : ""}
                   {changePercent(stock.priceFils, stock.previousFils).toFixed(
                     2,
                   )}
@@ -108,24 +123,34 @@ export function Landing({ authenticated }: { authenticated: boolean }) {
                 </span>
               </div>
             </div>
-            <svg
-              viewBox="0 0 500 175"
-              className={s.chart}
-              role="img"
-              aria-label="Emaar Properties deterministic simulated price history, not live data"
-            >
-              <defs>
-                <linearGradient id="landing-area" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#53d6b0" stopOpacity=".22" />
-                  <stop offset="100%" stopColor="#53d6b0" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <path d={`${line} L500,175 L0,175 Z`} fill="url(#landing-area)" />
-              <path d={line} fill="none" stroke="#65dcba" strokeWidth="2" />
-            </svg>
+            {prices.length < 2 ? (
+              <p className={s.chartCaption}>
+                Daily simulated history is building. Only saved quotes will be
+                charted.
+              </p>
+            ) : (
+              <svg
+                viewBox="0 0 500 175"
+                className={s.chart}
+                role="img"
+                aria-label="Emaar Properties stored simulated price history, not live data"
+              >
+                <defs>
+                  <linearGradient id="landing-area" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#53d6b0" stopOpacity=".22" />
+                    <stop offset="100%" stopColor="#53d6b0" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d={`${line} L500,175 L0,175 Z`}
+                  fill="url(#landing-area)"
+                />
+                <path d={line} fill="none" stroke="#65dcba" strokeWidth="2" />
+              </svg>
+            )}
             <div className={s.chartCaption}>
-              <span>90 days · AED</span>
-              <span>Fixed snapshot · 09 Nov 2026</span>
+              <span>{prices.length} saved sessions · AED</span>
+              <span>Simulation date · {stock.sessionDate}</span>
             </div>
             <div className={s.previewList}>
               {stocks.slice(1, 4).map((item) => (

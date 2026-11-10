@@ -41,11 +41,13 @@ export function OrderPreview({
   account,
   onAccountChange,
   onLockChange,
+  onQuoteLoaded,
 }: {
   stock: Stock;
   account: AccountData;
   onAccountChange: (account: AccountData) => void;
   onLockChange: (locked: boolean) => void;
+  onQuoteLoaded?: (priceFils: number, snapshotAt: string) => void;
 }) {
   const [side, setSide] = useState<OrderSide>("buy");
   const [quantity, setQuantity] = useState("");
@@ -111,6 +113,7 @@ export function OrderPreview({
         if (!controller.signal.aborted) {
           setQuote(nextQuote);
           onAccountChange(nextAccount);
+          onQuoteLoaded?.(nextQuote.priceFils, nextQuote.snapshotAt);
           setRefreshNeeded(false);
           setLoadError("");
           try {
@@ -159,6 +162,7 @@ export function OrderPreview({
     onAccountChange,
     onLockChange,
     storageKey,
+    onQuoteLoaded,
   ]);
   function refresh() {
     setLoading(true);

@@ -11,13 +11,14 @@ import {
 } from "lucide-react";
 import { AccountOverview } from "./AccountOverview";
 import { OrderPreview } from "./OrderPreview";
-import { stocks, type Stock } from "@/lib/market";
+import type { Stock } from "@/lib/market";
+import type { MarketData } from "@/lib/market-data";
 import { aed, changePercent } from "@/lib/money";
 import { PriceChart } from "./PriceChart";
 import type { AccountData } from "@/lib/account-types";
 import { Profile } from "./Profile";
 import { PortfolioHoldings } from "./PortfolioHoldings";
-import { percentLabel, positionDescription } from "@/lib/portfolio";
+import { returnPercentLabel, positionDescription } from "@/lib/portfolio";
 import s from "./Dashboard.module.css";
 const periods = [
   { label: "1M", days: 30 },
@@ -38,13 +39,16 @@ export function Dashboard({
   initialView = "Overview",
   initialSymbol,
   initialExchange,
+  market,
 }: {
   account?: AccountData | null;
   initialView?: WorkspaceView;
   initialSymbol?: string;
   initialExchange?: string;
+  market: MarketData;
 }) {
   const router = useRouter();
+  const stocks = market.stocks;
   const [accountUpdate, setAccountUpdate] = useState<{
     source: AccountData | null;
     data: AccountData;
@@ -65,12 +69,30 @@ export function Dashboard({
   const setView = (name: WorkspaceView) => router.push(workspaceRoutes[name]);
   const [query, setQuery] = useState("");
   const [exchange, setExchange] = useState("All markets");
-  const [selected, setSelected] = useState(
+  const [selectedKey, setSelectedKey] = useState(() => {
+    const initial =
+      stocks.find(
+        (stock) =>
+          stock.symbol === initialSymbol &&
+          (!initialExchange || stock.exchange === initialExchange),
+      ) ?? stocks[0];
+    return `${initial.exchange}:${initial.symbol}`;
+  });
+  const selected =
     stocks.find(
-      (stock) =>
-        stock.symbol === initialSymbol &&
-        (!initialExchange || stock.exchange === initialExchange),
-    ) ?? stocks[0],
+      (stock) => `${stock.exchange}:${stock.symbol}` === selectedKey,
+    ) ?? stocks[0];
+  const setSelected = (stock: Stock) =>
+    setSelectedKey(`${stock.exchange}:${stock.symbol}`);
+  const onQuoteLoaded = useCallback(
+    (priceFils: number, snapshotAt: string) => {
+      if (
+        priceFils !== selected.priceFils ||
+        snapshotAt !== selected.snapshotAt
+      )
+        router.refresh();
+    },
+    [router, selected.priceFils, selected.snapshotAt],
   );
   const [days, setDays] = useState(90);
   const filtered = useMemo(
@@ -82,7 +104,7 @@ export function Dashboard({
             .toLowerCase()
             .includes(query.toLowerCase().trim()),
       ),
-    [query, exchange],
+    [query, exchange, stocks],
   );
   return (
     <div className={s.shell}>
@@ -175,7 +197,8 @@ export function Dashboard({
               </p>
             </div>
             <div className={s.date}>
-              09 Nov 2026<span>Fixed simulation snapshot</span>
+              {market.sessionDate}
+              <span>Simulated session · Asia/Dubai</span>
             </div>
           </div>
           <div className={s.notice}>
@@ -209,7 +232,7 @@ export function Dashboard({
                   profitLoss === null
                     ? "Unavailable"
                     : `${profitLoss > 0 ? "+" : ""}${aed(profitLoss)}`,
-                  `${percentLabel(account.returnBasisPoints)} all time`,
+                  `${returnPercentLabel(account.profitLossFils, account.startingCapitalFils)} all time`,
                   "↗",
                 ],
                 [
@@ -233,6 +256,7 @@ export function Dashboard({
           {view === "Overview" && account && (
             <AccountOverview
               account={account}
+              stocks={stocks}
               onSelect={(stock) => {
                 router.push(
                   `/markets?symbol=${encodeURIComponent(stock.symbol)}&exchange=${stock.exchange}`,
@@ -314,6 +338,7 @@ export function Dashboard({
                     account={account}
                     onAccountChange={setUpdatedAccount}
                     onLockChange={setOrderLocked}
+                    onQuoteLoaded={onQuoteLoaded}
                   />
                 ) : (
                   <section
