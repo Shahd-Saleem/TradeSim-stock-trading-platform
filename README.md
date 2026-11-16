@@ -104,6 +104,8 @@ Visit **http://localhost:3000**. On Windows PowerShell, use `npm.cmd` if `npm.ps
 
 ## Testing
 
+GitHub Actions runs the full **TradeSim CI** check on pushes and pull requests, using disposable PostgreSQL with verified TLS. See the [CI and release-gate guide](docs/ci.md) for the workflow, Actions verification and optional production promotion gates. Vercel remains responsible for deployments.
+
 ```bash
 npm run typecheck
 npm run lint

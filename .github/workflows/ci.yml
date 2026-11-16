@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: TradeSim CI
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: tradesim_ci
+          POSTGRES_USER: postgres
+          # Public disposable-service credentials, never a production secret.
+          POSTGRES_PASSWORD: ci_postgres_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tradesim_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: postgresql://tradesim_runtime:ci_runtime_only@localhost:5432/tradesim_ci
+      DIRECT_URL: postgresql://postgres:ci_postgres_only@localhost:5432/tradesim_ci
+      TEST_DATABASE_URL: postgresql://postgres:ci_postgres_only@localhost:5432/tradesim_ci
+      TEST_RUNTIME_DATABASE_URL: postgresql://tradesim_runtime:ci_runtime_only@localhost:5432/tradesim_ci
+      DATABASE_CA_CERT_PATH: /tmp/tradesim-ci-tls/server.crt
+      DATABASE_CA_CERT: ""
+      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ci-only-auth-secret-with-no-production-use-2026
+      MARKET_DATABASE_URL: ""
+      MARKET_CRON_ENABLED: "false"
+      MARKET_CLOSED_DATES: ""
+      CRON_SECRET: ""
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: package.json
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install locked dependencies and generate Prisma Client
+        run: npm ci
+
+      - name: Configure verified TLS and isolated database roles
+        run: node scripts/ci/setup-postgres.mjs
+        env:
+          CI_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Unit and UI tests
+        run: npm test
+
+      - name: PostgreSQL integration tests
+        run: npm run test:integration
+
+      - name: Validate migrations on the disposable database
+        run: npm run db:migrate
+
+      - name: Validate database seed
+        run: npm run db:seed
+
+      - name: Production build
+        run: npm run build
+
+      # A clean checkout needs the Next-generated route declarations first.
+      - name: TypeScript
+        run: npm run typecheck
